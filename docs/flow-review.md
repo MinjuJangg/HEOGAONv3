@@ -27,6 +27,19 @@
 
 - `docs/flow-review-assets/01-landing.jpg`
 
+## Implemented Improvements
+
+2026-06-13 추가 반영:
+
+- 상단 뒤로가기 오해를 줄이기 위해 `처음으로 돌아가기` 확인 시트를 추가했다.
+- `GET /api/cases/{caseId}`와 프론트 `localStorage` 기반 case 복구를 연결했다.
+- 선택형/서술형 모두 `아직 몰라요`를 누르면 바로 다음 질문으로 넘어가게 통일했다.
+- 질문 화면에 `질문 N/M` 칩을 추가해 정보 수집 내부 진행도를 분리 표시했다.
+- 온라인 문의 화면에 `복사` 버튼과 복사 완료 상태를 추가했다.
+- 백엔드 turn validation을 강화해 잘못된 단계의 답변, 잘못된 서류 id, 문의 채널 미선택 답변 저장을 400으로 차단한다.
+- 진단 결과에서 주소 관련 항목이 `더 확인할 것`과 `먼저 정할 것`에 중복 표시되지 않게 조정했다.
+- 모든 서류가 이미 완료된 상태에서 문의 답변 분석이 `documents`를 반환하면 `DOCUMENTS`를 반복하지 않고 `DASHBOARD`로 이동한다.
+
 ## Step Health
 
 | Step | Screen | Health | Notes |
@@ -189,18 +202,27 @@ diagnosis / DIAGNOSIS
 documents / DOCUMENTS
 inquiry / INQUIRY
 answer_review / ANSWER_REVIEW
-documents / DOCUMENTS
 dashboard / DASHBOARD
 submitted / SUBMITTED / completion=100
 ```
 
+API guard checks confirmed:
+
+```text
+consultation_answer before inquiry channel -> 400
+invalid document id -> 400
+all documents completed + nextAction documents -> DASHBOARD
+```
+
 Browser checks confirmed:
 
-- landing screen recovered after frontend dev server restart
+- Galaxy S24+ ratio viewport rendered landing, first question, reset confirmation sheet, and history panel without visible overlap
 - first input to first question worked
-- question loop reached diagnosis
-- diagnosis to documents worked
-- no console errors during the checked browser path
+- `질문 N/M` chip rendered on information collection questions
+- free text and select `아직 몰라요` both advanced immediately
+- history panel returned to the active flow
+- online inquiry copy button rendered and showed `복사 완료`
+- no runtime error overlay appeared during the checked browser path
 
 Observed operational issue:
 

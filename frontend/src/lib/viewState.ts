@@ -19,7 +19,7 @@ export function primaryActionState(
   } else if (view.type === "documents") {
     const completedSet = new Set(completedDocumentIds);
     const allDocumentsCompleted = view.documents.length === 0 || view.documents.every((document) => completedSet.has(document.id));
-    label = allDocumentsCompleted ? view.nextButtonLabel : "서류를 모두 체크해 주세요";
+    label = allDocumentsCompleted ? view.nextButtonLabel : "남은 서류 체크";
     disabled = pending || !allDocumentsCompleted;
   } else if (view.type === "inquiry") {
     label = "답변 저장하기";

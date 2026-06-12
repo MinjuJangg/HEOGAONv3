@@ -8,11 +8,12 @@ import { QuestionHeader } from "@/components/shell/QuestionHeader";
 import { AnalysisLoadingScreen } from "@/components/views/AnalysisLoadingScreen";
 import { FlowView } from "@/components/views/FlowView";
 import { LandingScreen } from "@/components/views/LandingScreen";
-import { sendTurn, startCase } from "@/lib/api";
+import { getCase, sendTurn, startCase } from "@/lib/api";
 import { primaryActionState, progressFor } from "@/lib/viewState";
 import type { ApiEnvelope, DocumentItem, FlowActionId, TurnInput } from "@/types/flow";
 
 const MIN_ANALYSIS_LOADING_MS = 950;
+const CASE_STORAGE_KEY = "heogaon:v2:caseId";
 
 export function HeogaonFlowApp() {
   const [splashPhase, setSplashPhase] = useState<"visible" | "hiding" | "done">("visible");
@@ -24,6 +25,8 @@ export function HeogaonFlowApp() {
   const [consultationText, setConsultationText] = useState("");
   const [activeDocument, setActiveDocument] = useState<DocumentItem | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const [restoring, setRestoring] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
 
@@ -48,6 +51,39 @@ export function HeogaonFlowApp() {
       window.clearTimeout(doneTimer);
     };
   }, []);
+
+  useEffect(() => {
+    const savedCaseId = window.localStorage.getItem(CASE_STORAGE_KEY);
+    if (!savedCaseId) return;
+
+    let mounted = true;
+    setRestoring(true);
+    getCase(savedCaseId)
+      .then((response) => {
+        if (!mounted) return;
+        setEnvelope(response);
+        setCaseId(response.caseId);
+        resetTransientInputs();
+      })
+      .catch(() => {
+        window.localStorage.removeItem(CASE_STORAGE_KEY);
+      })
+      .finally(() => {
+        if (mounted) setRestoring(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (caseId) {
+      window.localStorage.setItem(CASE_STORAGE_KEY, caseId);
+      return;
+    }
+    window.localStorage.removeItem(CASE_STORAGE_KEY);
+  }, [caseId]);
 
   async function run(task: () => Promise<void>) {
     setPending(true);
@@ -80,6 +116,9 @@ export function HeogaonFlowApp() {
       const response = await sendTurn(caseId, input);
       setEnvelope(response);
       resetTransientInputs();
+      if (input.type === "consultation_answer") {
+        setConsultationText("");
+      }
     });
   }
 
@@ -89,6 +128,7 @@ export function HeogaonFlowApp() {
   }
 
   function resetCase() {
+    window.localStorage.removeItem(CASE_STORAGE_KEY);
     setEnvelope(null);
     setCaseId(null);
     setInputText("");
@@ -97,6 +137,7 @@ export function HeogaonFlowApp() {
     setConsultationText("");
     setActiveDocument(null);
     setHistoryOpen(false);
+    setResetConfirmOpen(false);
     setError("");
   }
 
@@ -143,13 +184,13 @@ export function HeogaonFlowApp() {
   return (
     <>
       <main className={`app${ready ? " is-ready" : ""}`} id="app" aria-label="허가온" data-question-type={questionType}>
-        {showLanding && pending ? (
+        {showLanding && (pending || restoring) ? (
           <AnalysisLoadingScreen />
         ) : showLanding ? (
           <LandingScreen inputText={inputText} pending={pending} onChange={setInputText} onStart={handleStart} />
         ) : (
           <section className="screen active" data-screen="question">
-            <QuestionHeader progress={progress} onBack={resetCase} onHistory={() => setHistoryOpen(true)} />
+            <QuestionHeader progress={progress} onBack={() => setResetConfirmOpen(true)} onHistory={() => setHistoryOpen(true)} />
             <div className="question-main">
               {error ? <p className="collect-status error-text">{error}</p> : null}
               <FlowView
@@ -179,6 +220,7 @@ export function HeogaonFlowApp() {
               />
             ) : null}
             <HistoryPanel open={historyOpen} envelope={envelope} onClose={() => setHistoryOpen(false)} onAction={submitAction} />
+            <ResetConfirmSheet open={resetConfirmOpen} onClose={() => setResetConfirmOpen(false)} onConfirm={resetCase} />
           </section>
         )}
       </main>
@@ -193,4 +235,38 @@ export function HeogaonFlowApp() {
 
 function wait(duration: number) {
   return new Promise((resolve) => window.setTimeout(resolve, duration));
+}
+
+function ResetConfirmSheet({
+  open,
+  onClose,
+  onConfirm,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div
+      className={`reset-confirm-panel${open ? " open" : ""}`}
+      aria-hidden={!open}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section className="reset-confirm-sheet" aria-label="처음으로 돌아가기">
+        <span className="history-grabber" aria-hidden="true" />
+        <h2 className="reset-confirm-title">처음으로 돌아갈까요?</h2>
+        <p className="reset-confirm-text">지금까지 입력한 진행 내용이 이 화면에서 닫힙니다.</p>
+        <div className="reset-confirm-actions">
+          <button className="reset-confirm-secondary" type="button" onClick={onClose}>
+            계속 진행
+          </button>
+          <button className="reset-confirm-danger" type="button" onClick={onConfirm}>
+            처음으로
+          </button>
+        </div>
+      </section>
+    </div>
+  );
 }

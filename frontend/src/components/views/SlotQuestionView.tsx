@@ -16,8 +16,11 @@ export function SlotQuestionView({
   onFreeText: (value: string) => void;
   onUnknown: () => void;
 }) {
+  const plannedTotal = view.loop.plannedTotalQuestions || view.loop.maxTotalQuestions;
+
   return (
     <section className="question-card">
+      <span className="question-loop-chip">질문 {view.loop.totalAsked}/{plannedTotal}</span>
       <h1 className="question-title">{view.title}</h1>
       {view.subtitle ? <p className="question-sub">{view.subtitle}</p> : null}
       {view.validationMessage ? <p className="collect-status error-text">{view.validationMessage}</p> : null}
@@ -37,7 +40,7 @@ export function SlotQuestionView({
           </button>
         </div>
       ) : (
-        <QuestionOptions view={view} selectedIds={selectedIds} onSelectIds={onSelectIds} />
+        <QuestionOptions view={view} selectedIds={selectedIds} onSelectIds={onSelectIds} onUnknown={onUnknown} />
       )}
     </section>
   );
@@ -47,14 +50,21 @@ function QuestionOptions({
   view,
   selectedIds,
   onSelectIds,
+  onUnknown,
 }: {
   view: SlotQuestionViewModel;
   selectedIds: string[];
   onSelectIds: (ids: string[]) => void;
+  onUnknown: () => void;
 }) {
   const isMulti = view.inputMode === "multi_select";
 
   function toggle(option: QuestionOption) {
+    if (option.id === "unknown") {
+      onUnknown();
+      return;
+    }
+
     if (!isMulti || option.exclusive) {
       onSelectIds([option.id]);
       return;

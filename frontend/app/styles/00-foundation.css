@@ -672,6 +672,22 @@
         padding: 16px 14px;
       }
 
+      .question-loop-chip {
+        width: fit-content;
+        min-height: 28px;
+        display: inline-flex;
+        align-items: center;
+        margin-bottom: 12px;
+        padding: 0 10px;
+        border-radius: var(--radius-full);
+        background: #eef5ff;
+        color: var(--primary);
+        font-size: 12px;
+        font-weight: 820;
+        line-height: 1.2;
+        font-variant-numeric: tabular-nums;
+      }
+
       .question-title {
         margin: 0;
         color: var(--text);

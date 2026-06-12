@@ -13,6 +13,10 @@ from app.services.slot_utils import now_iso
 from app.services.view_builder import ViewBuilder, view_builder
 
 
+class FlowInputError(ValueError):
+    pass
+
+
 class CaseFlowService:
     def __init__(
         self,
@@ -53,6 +57,8 @@ class CaseFlowService:
         case["updatedAt"] = now_iso()
 
         if input_type == "slot_answer":
+            if case["machineState"] != "NEEDS_INFO":
+                raise FlowInputError("현재 단계에서는 질문 답변을 받을 수 없습니다.")
             self.questions.apply_slot_answer(case, input_payload)
             if case["questionLoop"].pop("retryCurrent", False):
                 return case
@@ -62,33 +68,51 @@ class CaseFlowService:
             return self.apply_action(case, input_payload.get("actionId", "primary"))
 
         if input_type == "document_toggle":
-            self.documents.toggle_document(case, input_payload.get("documentId"), bool(input_payload.get("completed")))
+            self.ensure_documents_ready(case)
+            document_id = input_payload.get("documentId")
+            if document_id not in {document["id"] for document in case["documents"]}:
+                raise FlowInputError("존재하지 않는 서류입니다.")
+            self.documents.toggle_document(case, document_id, bool(input_payload.get("completed")))
             case["machineState"] = "DOCUMENTS"
             return case
 
         if input_type == "inquiry_channel":
+            if case["machineState"] != "INQUIRY":
+                raise FlowInputError("현재 단계에서는 문의 방법을 선택할 수 없습니다.")
+            if not self.inquiries.has_open_inquiry(case):
+                raise FlowInputError("진행할 문의가 없습니다.")
+            if input_payload.get("channel") not in {"phone", "online", "visit"}:
+                raise FlowInputError("지원하지 않는 문의 방법입니다.")
             case["machineState"] = "INQUIRY"
             case["selectedInquiryChannel"] = input_payload.get("channel") or "channels"
             return case
 
         if input_type == "consultation_answer":
+            if case["machineState"] != "INQUIRY" or not case.get("selectedInquiryChannel") or case.get("selectedInquiryChannel") == "channels":
+                raise FlowInputError("문의 방법 선택 후 받은 답변을 저장할 수 있습니다.")
+            if not self.inquiries.has_open_inquiry(case):
+                raise FlowInputError("저장할 문의가 없습니다.")
             self.consultations.analyze(case, input_payload.get("text") or "")
             return case
 
-        return case
+        raise FlowInputError("지원하지 않는 입력입니다.")
 
     def apply_action(self, case: dict[str, Any], action_id: str) -> dict[str, Any]:
         state = case["machineState"]
         if action_id == "restart":
             return self.create_case("")
         if action_id == "documents":
+            self.ensure_documents_ready(case)
             case["machineState"] = "DOCUMENTS"
             return case
         if action_id == "inquiry":
+            if not self.inquiries.has_open_inquiry(case):
+                raise FlowInputError("진행할 문의가 없습니다.")
             case["machineState"] = "INQUIRY"
             case["selectedInquiryChannel"] = "channels"
             return case
         if action_id == "dashboard":
+            self.ensure_documents_ready(case)
             case["machineState"] = "DASHBOARD"
             return case
         if action_id == "submitted":
@@ -150,13 +174,18 @@ class CaseFlowService:
             case["selectedInquiryChannel"] = "channels"
             return case
         if analysis.get("nextAction") == "documents":
-            case["machineState"] = "DOCUMENTS"
+            case["machineState"] = "DOCUMENTS" if not self.all_documents_completed(case) else "DASHBOARD"
             return case
         case["machineState"] = "DASHBOARD"
         return case
 
     def envelope(self, case: dict[str, Any]) -> dict[str, Any]:
         return self.views.envelope(case)
+
+    @staticmethod
+    def ensure_documents_ready(case: dict[str, Any]) -> None:
+        if not case.get("documents"):
+            raise FlowInputError("아직 서류 단계로 이동할 수 없습니다.")
 
 
 flow_service = CaseFlowService()

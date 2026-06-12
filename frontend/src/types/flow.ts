@@ -71,6 +71,7 @@ export interface SlotQuestionView {
   loop: {
     totalAsked: number;
     maxTotalQuestions: number;
+    plannedTotalQuestions?: number;
     attemptsForField: number;
     maxAttemptsPerField: number;
   };

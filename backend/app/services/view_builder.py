@@ -79,6 +79,10 @@ class ViewBuilder:
             "loop": {
                 "totalAsked": case["questionLoop"]["totalAsked"],
                 "maxTotalQuestions": case["questionLoop"]["maxTotalQuestions"],
+                "plannedTotalQuestions": min(
+                    case["questionLoop"]["maxTotalQuestions"],
+                    len(case["questionLoop"].get("pendingQuestions") or []),
+                ),
                 "attemptsForField": case["questionLoop"]["attempts"].get(current.get("field"), 0),
                 "maxAttemptsPerField": case["questionLoop"]["maxAttemptsPerField"],
             },
@@ -195,11 +199,12 @@ class ViewBuilder:
                 "title": "지금 준비할 서류",
                 "items": [doc["title"] for doc in ready_docs],
             })
-        if missing_required:
+        info_fields = [field for field in missing_required if field != "exact_address"]
+        if info_fields:
             blocks.append({
                 "type": "needs_user_info",
                 "title": "더 확인할 것",
-                "items": [label_for_field(field) for field in missing_required],
+                "items": [label_for_field(field) for field in info_fields],
             })
         if open_tasks:
             blocks.append({

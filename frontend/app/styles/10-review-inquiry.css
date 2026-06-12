@@ -372,6 +372,44 @@
         color: #9aa8ba;
       }
 
+      .online-copy-button {
+        min-height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        margin-left: auto;
+        padding: 0 12px;
+        border-radius: 11px;
+        background: var(--primary-soft);
+        color: var(--primary);
+        font-size: 13px;
+        font-weight: 820;
+        line-height: 1.2;
+        border: 1px solid rgba(15, 79, 149, 0.12);
+        transition: background var(--duration-fast) var(--ease-smooth),
+                    transform var(--duration-fast) var(--ease-smooth);
+      }
+
+      .online-copy-button:active {
+        transform: scale(0.98);
+        background: #dcecff;
+      }
+
+      .online-copy-button svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      .online-copy-status {
+        margin: 8px 0 0;
+        color: var(--primary);
+        font-size: 12px;
+        font-weight: 760;
+        line-height: 1.35;
+        text-align: right;
+      }
+
       .followup-file-input {
         display: none;
       }

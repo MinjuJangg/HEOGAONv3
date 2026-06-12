@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from app.flow import CASES, apply_turn, create_case, envelope
+from app.services.flow_service import FlowInputError
 
 
 class TurnRequest(BaseModel):
@@ -44,7 +45,10 @@ def create_case_endpoint(request: TurnRequest):
 def turn_endpoint(case_id: str, request: TurnRequest):
     if case_id not in CASES:
         raise HTTPException(status_code=404, detail="case를 찾을 수 없습니다.")
-    case = apply_turn(case_id, request.input)
+    try:
+        case = apply_turn(case_id, request.input)
+    except FlowInputError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return envelope(case)
 
 

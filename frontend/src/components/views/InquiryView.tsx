@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { Icon, channelIcon, channelTitle } from "@/components/common/Icon";
 import type { InquiryView as InquiryViewModel } from "@/types/flow";
 
@@ -13,6 +16,16 @@ export function InquiryView({
   onChannel: (channel: "phone" | "online" | "visit") => void;
 }) {
   const task = view.task;
+  const [copyStatus, setCopyStatus] = useState("");
+
+  async function copyOnlineDraft() {
+    try {
+      await navigator.clipboard.writeText(view.onlineDraft.body);
+      setCopyStatus("복사 완료");
+    } catch {
+      setCopyStatus("복사 실패");
+    }
+  }
 
   if (!task) {
     return (
@@ -73,13 +86,18 @@ export function InquiryView({
         ) : null}
         {view.mode === "online" ? (
           <section className="summary-review">
-            <div className="summary-review-title-row">
+            <div className="summary-review-title-row summary-review-title-row--with-action">
               <span aria-hidden="true"><Icon name="monitor" /></span>
               <h2 className="summary-review-title">문의 글</h2>
+              <button className="online-copy-button" type="button" onClick={copyOnlineDraft}>
+                <Icon name="copy" size={16} />
+                <span>복사</span>
+              </button>
             </div>
             <div className="detail-box">
               <textarea className="followup-field" value={view.onlineDraft.body} readOnly rows={9} />
             </div>
+            {copyStatus ? <p className="online-copy-status">{copyStatus}</p> : null}
           </section>
         ) : null}
         {view.mode === "visit" ? (

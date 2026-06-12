@@ -22,7 +22,7 @@ export function QuestionHeader({
     <header className="question-header">
       <div className="question-header-top">
         <div className="header-left">
-          <button className="icon-button" type="button" aria-label="이전" onClick={onBack}>
+          <button className="icon-button" type="button" aria-label="처음으로 돌아가기" onClick={onBack}>
             <Icon name="back" />
           </button>
         </div>

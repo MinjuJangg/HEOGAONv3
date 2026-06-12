@@ -6,6 +6,14 @@ export async function startCase(text: string): Promise<ApiEnvelope> {
   return send("/api/cases", { type: "natural_language", text });
 }
 
+export async function getCase(caseId: string): Promise<ApiEnvelope> {
+  const response = await fetch(`${API_BASE_URL}/api/cases/${caseId}`);
+  if (!response.ok) {
+    throw new Error(await responseErrorMessage(response));
+  }
+  return response.json() as Promise<ApiEnvelope>;
+}
+
 export async function sendTurn(caseId: string, input: TurnInput): Promise<ApiEnvelope> {
   return send(`/api/cases/${caseId}/turns`, input);
 }
@@ -18,9 +26,22 @@ async function send(path: string, input: TurnInput): Promise<ApiEnvelope> {
   });
 
   if (!response.ok) {
-    const text = await response.text();
-    throw new Error(text || `API ${response.status}`);
+    throw new Error(await responseErrorMessage(response));
   }
 
   return response.json() as Promise<ApiEnvelope>;
+}
+
+async function responseErrorMessage(response: Response) {
+  const text = await response.text();
+  if (!text) return `API ${response.status}`;
+
+  try {
+    const payload = JSON.parse(text) as { detail?: unknown };
+    if (typeof payload.detail === "string") return payload.detail;
+  } catch {
+    return text;
+  }
+
+  return text;
 }

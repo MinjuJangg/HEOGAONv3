@@ -6,6 +6,7 @@ export type IconName =
   | "building2"
   | "check"
   | "close"
+  | "copy"
   | "edit"
   | "fan"
   | "fileCheck"
@@ -27,6 +28,7 @@ const paths: Record<IconName, string> = {
   building2: '<path d="M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16M3 21h18M9 7h.01M15 7h.01M9 11h.01M15 11h.01M9 15h.01M15 15h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
   check: '<path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>',
   close: '<path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/>',
+  copy: '<rect x="8" y="8" width="12" height="12" rx="2" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
   edit: '<path d="M4 17.5V21h3.5L20.8 8.7l-3.5-3.5L4 17.5zM18 5.5l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
   fan: '<circle cx="12" cy="12" r="2" stroke="currentColor" stroke-width="1.9"/><path d="M12 10c.9-3.4 2.6-5.2 4.2-4.4 1.6.8 1.7 3.3-.4 5.6M13.8 13c3.4.9 5.2 2.6 4.4 4.2-.8 1.6-3.3 1.7-5.6-.4M10.2 13C6.8 12.1 5 10.4 5.8 8.8c.8-1.6 3.3-1.7 5.6.4M12 14c-.9 3.4-2.6 5.2-4.2 4.4-1.6-.8-1.7-3.3.4-5.6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>',
   fileCheck: '<path d="M7 3h7l4 4v14H7a2 2 0 01-2-2V5a2 2 0 012-2z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M14 3v5h5M9 14l2 2 4-5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>',

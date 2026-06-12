@@ -615,3 +615,85 @@
         width: 18px;
         height: 18px;
       }
+
+      .reset-confirm-panel {
+        position: absolute;
+        inset: 0;
+        z-index: 35;
+        display: none;
+        background: rgba(16, 24, 39, 0);
+      }
+
+      .reset-confirm-panel.open {
+        display: block;
+        background: rgba(16, 24, 39, 0.28);
+        animation: overlayFadeIn var(--duration-normal) var(--ease-smooth) both;
+      }
+
+      .reset-confirm-panel.open .reset-confirm-sheet {
+        animation: sheetSlideUp var(--duration-slow) var(--ease-out) both;
+      }
+
+      .reset-confirm-sheet {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: grid;
+        gap: 12px;
+        border-radius: 24px 24px 0 0;
+        background: #ffffff;
+        padding: 12px 20px calc(20px + env(safe-area-inset-bottom));
+        box-shadow: 0 -18px 28px rgba(15, 31, 53, 0.16);
+      }
+
+      .reset-confirm-title {
+        margin: 4px 0 0;
+        color: var(--text);
+        font-size: 22px;
+        font-weight: 840;
+        line-height: 1.28;
+        text-align: center;
+      }
+
+      .reset-confirm-text {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 560;
+        line-height: 1.5;
+        text-align: center;
+      }
+
+      .reset-confirm-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 4px;
+      }
+
+      .reset-confirm-secondary,
+      .reset-confirm-danger {
+        min-height: 52px;
+        border-radius: 15px;
+        font-size: 15px;
+        font-weight: 820;
+        line-height: 1.2;
+      }
+
+      .reset-confirm-secondary {
+        background: #f4f7fb;
+        color: var(--text-secondary);
+        border: 1px solid #dfe7f2;
+      }
+
+      .reset-confirm-danger {
+        background: var(--primary);
+        color: #ffffff;
+        box-shadow: 0 10px 22px rgba(15, 79, 149, 0.2);
+      }
+
+      .reset-confirm-secondary:active,
+      .reset-confirm-danger:active {
+        transform: scale(0.99);
+      }
