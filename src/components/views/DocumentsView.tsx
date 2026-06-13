@@ -1,6 +1,10 @@
-import { useEffect, useMemo, useRef, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Icon } from "@/components/common/Icon";
-import type { DocumentItem, DocumentsView as DocumentsViewModel } from "@/types/flow";
+import type {
+  DocumentItem,
+  DocumentsView as DocumentsViewModel,
+  DocumentWritingGuide,
+} from "@/types/flow";
 
 export function DocumentsView({
   view,
@@ -195,6 +199,8 @@ function DocumentDetail({
   const blockers = document.blockingPrerequisites ?? [];
   const officialLinks = document.officialLinks ?? [];
   const prepareInfo = document.prepareInfo ?? [];
+  const writingGuide = document.writingGuide;
+  const [guideOpen, setGuideOpen] = useState(false);
 
   return (
     <div className="document-detail-overlay" data-document-detail-overlay onClick={(event) => event.target === event.currentTarget && onClose()}>
@@ -247,6 +253,16 @@ function DocumentDetail({
           <DetailMetaCard label="제출 시점" value={document.submissionPhase || "제출 전 확인"} />
           {document.issueChannel ? <DetailMetaCard label="준비 방식" value={document.issueChannel} /> : null}
         </div>
+        {writingGuide ? (
+          <button className="document-guide-open" type="button" onClick={() => setGuideOpen(true)}>
+            <span className="document-guide-open-icon" aria-hidden="true"><Icon name="fileCheck" size={18} /></span>
+            <span className="document-guide-open-main">
+              <span className="document-guide-open-title">서류작성 가이드 보기</span>
+              <span className="document-guide-open-desc">정부24에서 무엇을 고르고 적을지 미리 채워서 보여줘요</span>
+            </span>
+            <Icon name="arrowRight" size={16} />
+          </button>
+        ) : null}
         {blockers.length ? (
           <div className="document-detail-section">
             <span className="document-detail-label">제출 전 먼저 필요한 것</span>
@@ -282,6 +298,104 @@ function DocumentDetail({
             ))}
           </div>
         ) : null}
+      </section>
+      {writingGuide && guideOpen ? (
+        <DocumentGuide guide={writingGuide} onClose={() => setGuideOpen(false)} />
+      ) : null}
+    </div>
+  );
+}
+
+function DocumentGuide({
+  guide,
+  onClose,
+}: {
+  guide: DocumentWritingGuide;
+  onClose: () => void;
+}) {
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  async function copy(key: string, text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedKey(key);
+      window.setTimeout(() => setCopiedKey((current) => (current === key ? null : current)), 1500);
+    } catch {
+      setCopiedKey(null);
+    }
+  }
+
+  return (
+    <div className="document-guide-overlay" onClick={(event) => event.target === event.currentTarget && onClose()}>
+      <section className="document-guide-sheet" role="dialog" aria-modal="true" aria-labelledby="documentGuideTitle">
+        <div className="document-guide-head">
+          <div>
+            <span className="document-guide-kicker">서류작성 가이드</span>
+            <h3 className="document-guide-title" id="documentGuideTitle">{guide.title}</h3>
+            <p className="document-guide-intro">{guide.intro}</p>
+          </div>
+          <button className="document-detail-close" type="button" aria-label="닫기" onClick={onClose}>×</button>
+        </div>
+
+        {guide.applyUrl ? (
+          <a className="document-guide-apply" href={guide.applyUrl} target="_blank" rel="noreferrer">
+            <Icon name="building2" size={16} />
+            <span>{guide.applyLabel || "신청 페이지 열기"}</span>
+            <Icon name="arrowRight" size={16} />
+          </a>
+        ) : null}
+
+        {guide.sections.map((section) => (
+          <div className="document-guide-section" key={section.title}>
+            <span className="document-guide-section-title">{section.title}</span>
+            <ul className="document-guide-items">
+              {section.items.map((item) => {
+                const key = `${section.title}-${item.label}`;
+                const isSelect = section.type === "select";
+                const headerLabel = isSelect && item.group ? `${item.group} > ${item.label}` : item.label;
+                const canCopy = !isSelect && Boolean(item.value) && Boolean(item.filled);
+                return (
+                  <li className="document-guide-item" key={key}>
+                    <div className="document-guide-item-main">
+                      <span className="document-guide-item-label">{headerLabel}</span>
+                      {isSelect ? (
+                        <span className="document-guide-item-choose">
+                          <span className="document-guide-check" aria-hidden="true">✓</span>
+                          {item.choose}
+                        </span>
+                      ) : item.filled ? (
+                        <span className="document-guide-item-value">{item.value}</span>
+                      ) : (
+                        <span className="document-guide-item-empty">직접 입력</span>
+                      )}
+                      {!isSelect && item.hint ? <span className="document-guide-item-hint">{item.hint}</span> : null}
+                    </div>
+                    {canCopy ? (
+                      <button
+                        className={`document-guide-copy${copiedKey === key ? " is-copied" : ""}`}
+                        type="button"
+                        onClick={() => copy(key, item.value ?? "")}
+                      >
+                        {copiedKey === key ? "복사됨" : "복사"}
+                      </button>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+
+        {guide.attachments?.length ? (
+          <div className="document-guide-section">
+            <span className="document-guide-section-title">함께 첨부할 서류</span>
+            <ul className="document-guide-attachments">
+              {guide.attachments.map((item) => <li key={item}>{item}</li>)}
+            </ul>
+          </div>
+        ) : null}
+
+        {guide.footnote ? <p className="document-guide-footnote">{guide.footnote}</p> : null}
       </section>
     </div>
   );
