@@ -5,6 +5,7 @@ import { DevPanel } from "@/components/dev/DevPanel";
 import { BottomBar } from "@/components/shell/BottomBar";
 import { BrandLogo } from "@/components/shell/BrandLogo";
 import { HistoryPanel } from "@/components/shell/HistoryPanel";
+import { ProcessingOverlay } from "@/components/shell/ProcessingOverlay";
 import { QuestionHeader } from "@/components/shell/QuestionHeader";
 import { AnalysisLoadingScreen } from "@/components/views/AnalysisLoadingScreen";
 import { FlowView } from "@/components/views/FlowView";
@@ -256,6 +257,7 @@ export function HeogaonFlowApp({ initialDevView }: { initialDevView?: ViewType |
                 onPrimary={submitPrimary}
               />
             ) : null}
+            <ProcessingOverlay active={pending} />
             <HistoryPanel open={historyOpen} envelope={envelope} onClose={() => setHistoryOpen(false)} onAction={submitAction} />
             <ResetConfirmSheet open={resetConfirmOpen} onClose={() => setResetConfirmOpen(false)} onConfirm={resetCase} />
           </section>
