@@ -15,12 +15,14 @@ class IntakeAgent:
     def __init__(self, llm: LlmClient = llm_client) -> None:
         self.llm = llm
 
-    def understand(self, case: dict[str, Any]) -> None:
+    def understand(self, case: dict[str, Any], use_llm: bool = True) -> None:
         text = mask_sensitive_text(case["rawInput"])
-        ai_result = self._ai_intake(text)
+        ai_result = self._ai_intake(text) if use_llm else None
         if ai_result:
             self._apply_ai_result(case, ai_result)
             case["ai"]["intakeSource"] = "llm"
+        elif not use_llm:
+            case["ai"]["intakeSource"] = "minju+rules"
 
         self._apply_rule_fallback(case, text)
         case["candidatePermits"] = self.infer_candidate_permits(case)
@@ -82,6 +84,10 @@ class IntakeAgent:
             append_condition(case, "outdoor_space_planned")
 
     def _apply_rule_fallback(self, case: dict[str, Any], text: str) -> None:
+        address = self.infer_exact_address(text)
+        if address and "exact_address" not in case["slots"]:
+            set_slot(case, "exact_address", address, address, "사용자 입력 상세주소")
+
         location = self.infer_location(text)
         if location and "location" not in case["slots"]:
             set_slot(case, "location", location, location, "사용자 입력 지역")
@@ -90,16 +96,45 @@ class IntakeAgent:
         if activity and "business_activity" not in case["slots"]:
             set_slot(case, "business_activity", activity, activity, "생활 언어 업종")
 
-        if re.search(r"매장|홀|좌석|먹고|취식", text) and "on_site_consumption" not in case["slots"]:
+        area = self.infer_area(text)
+        if area and "area" not in case["slots"]:
+            set_slot(case, "area", area, area, "사용자 입력 영업장 면적")
+
+        if self.infer_on_site_consumption(text) is False and "on_site_consumption" not in case["slots"]:
+            set_slot(case, "on_site_consumption", False, "포장·배달만 해요", "객석 없음 / 포장·배달 검토")
+        if self.infer_on_site_consumption(text) is True and "on_site_consumption" not in case["slots"]:
             set_slot(case, "on_site_consumption", True, "매장 안에서 먹고 갈 수 있어요", "객석 있음 / 식품접객업 검토")
         if re.search(r"포장|배달", text) and "operation_detail" not in case["slots"]:
             set_slot(case, "operation_detail", ["takeout", "delivery"], "포장·배달도 해요", "포장·배달 판매")
-        if re.search(r"술|주류|맥주|와인|소주", text) and "liquor_sales" not in case["slots"]:
-            set_slot(case, "liquor_sales", True, "술 판매 가능성이 있어요", "주류 판매 검토")
+        liquor_sales = self.infer_liquor_sales(text)
+        if liquor_sales is not None and "liquor_sales" not in case["slots"]:
+            text_value = "술 판매 가능성이 있어요" if liquor_sales else "술 판매 없음"
+            admin_value = "주류 판매 검토" if liquor_sales else "주류 판매 없음"
+            set_slot(case, "liquor_sales", liquor_sales, text_value, admin_value)
+        manufacturing = self.infer_manufacturing_mode(text)
+        if manufacturing and "manufacturing_or_simple_sale" not in case["slots"]:
+            set_slot(case, "manufacturing_or_simple_sale", manufacturing, manufacturing, "사용자 입력 조리·제조 방식")
+        if re.search(r"창업|개업|오픈|새로\s*시작|열고", text) and "takeover_type" not in case["slots"]:
+            set_slot(case, "takeover_type", "new_report", "새로 시작해요", "신규 영업신고")
         if re.search(r"간판|옥외광고", text):
             append_condition(case, "signage_planned")
         if re.search(r"외부|테이블|보도|도로", text):
             append_condition(case, "outdoor_space_planned")
+
+    @staticmethod
+    def infer_exact_address(text: str) -> str | None:
+        detail = r"(?:\s*,?\s*(?:지하\s*)?\d+\s*층)?(?:\s*,?\s*[A-Za-z]?\d{1,5}\s*호)?"
+        patterns = [
+            rf"((?:서울(?:특별시|시)?\s*)?[가-힣]+구\s+[가-힣0-9]+(?:로|길|대로)\s*\d+(?:-\d+)?{detail})",
+            rf"((?:서울(?:특별시|시)?\s*)?[가-힣]+구\s+[가-힣0-9]+동\s*\d+(?:-\d+)?{detail})",
+        ]
+        for pattern in patterns:
+            match = re.search(pattern, text)
+            if not match:
+                continue
+            value = re.sub(r"\s+", " ", match.group(1)).strip(" ,.")
+            return value if value.startswith("서울") else f"서울특별시 {value}"
+        return None
 
     @staticmethod
     def infer_location(text: str) -> str | None:
@@ -118,6 +153,43 @@ class IntakeAgent:
             return "고깃집"
         if re.search(r"음식점|식당|요식", text):
             return "음식점"
+        return None
+
+    @staticmethod
+    def infer_area(text: str) -> str | None:
+        match = re.search(r"(\d+(?:\.\d+)?)\s*(평|㎡|m2|m²|제곱미터)", text, re.IGNORECASE)
+        if not match:
+            return None
+        number, unit = match.groups()
+        return f"{number}{unit}"
+
+    @staticmethod
+    def infer_on_site_consumption(text: str) -> bool | None:
+        compact = re.sub(r"\s+", "", text)
+        if re.search(r"포장만|테이크아웃만|배달만|객석없|좌석없|매장취식안", compact):
+            return False
+        if re.search(r"매장|홀|좌석|먹고|취식|테이블|카페", text):
+            return True
+        return None
+
+    @staticmethod
+    def infer_liquor_sales(text: str) -> bool | None:
+        compact = re.sub(r"\s+", "", text)
+        if re.search(r"(주류|술).{0,8}(안팔|팔지않|판매안|판매하지않|없|취급안|취급하지않)", compact):
+            return False
+        if re.search(r"무알콜|커피만|음료만", compact):
+            return False
+        if re.search(r"술|주류|맥주|와인|소주|하이볼|칵테일", text):
+            return True
+        return None
+
+    @staticmethod
+    def infer_manufacturing_mode(text: str) -> str | None:
+        compact = re.sub(r"\s+", "", text)
+        if re.search(r"완제품|납품|단순판매|받아와서판매", compact):
+            return "resale_or_simple_sale"
+        if re.search(r"직접(만들|제조|가공)|만들어서|제조|가공|조리|브런치|디저트.*직접", compact):
+            return "cook"
         return None
 
     @staticmethod

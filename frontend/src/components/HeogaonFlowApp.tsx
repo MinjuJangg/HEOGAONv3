@@ -210,7 +210,7 @@ export function HeogaonFlowApp() {
         {showLanding && (pending || restoring) ? (
           <AnalysisLoadingScreen />
         ) : showLanding ? (
-          <LandingScreen inputText={inputText} pending={pending} onChange={setInputText} onStart={handleStart} />
+          <LandingScreen inputText={inputText} error={error} pending={pending} onChange={setInputText} onStart={handleStart} />
         ) : (
           <section className="screen active" data-screen="question">
             <QuestionHeader progress={progress} onBack={() => setResetConfirmOpen(true)} onHistory={() => setHistoryOpen(true)} />
@@ -233,6 +233,7 @@ export function HeogaonFlowApp() {
                 onCloseDocument={() => setActiveDocument(null)}
                 onDashboardContinue={submitPrimary}
                 onDashboardAction={submitAction}
+                onAction={submitAction}
                 dashboardContinueDisabled={!primary || primary.disabled}
               />
             </div>

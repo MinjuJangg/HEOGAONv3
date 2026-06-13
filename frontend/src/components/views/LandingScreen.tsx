@@ -18,11 +18,13 @@ const PLACEHOLDER_FADE_MS = 420;
 
 export function LandingScreen({
   inputText,
+  error,
   pending,
   onChange,
   onStart,
 }: {
   inputText: string;
+  error?: string;
   pending: boolean;
   onChange: (value: string) => void;
   onStart: () => void;
@@ -77,10 +79,20 @@ export function LandingScreen({
             value={inputText}
             onChange={(event) => onChange(event.target.value)}
           />
-          <button className="send-button" type="submit" disabled={pending || inputText.trim().length < 2} aria-label="시작하기">
+          <button
+            className="send-button"
+            type="submit"
+            disabled={pending || inputText.trim().length < 2}
+            aria-label="시작하기"
+            onClick={(event) => {
+              event.preventDefault();
+              onStart();
+            }}
+          >
             <ArrowUpIcon />
           </button>
         </form>
+        {error ? <p className="collect-status error-text" role="alert">{error}</p> : null}
       </div>
     </section>
   );

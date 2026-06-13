@@ -13,10 +13,55 @@ from app.services.slot_utils import (
     admin_term_for,
     append_condition,
     append_unique,
+    as_list,
     now_iso,
     set_slot,
     slot_value,
 )
+
+
+SYSTEM_DERIVED_FIELDS = {"building_use", "area"}
+
+MINJU_FIELD_ALIASES: dict[str, tuple[str, ...]] = {
+    "address": ("exact_address",),
+    "base_address": ("exact_address",),
+    "detailed_address": ("exact_address",),
+    "detailed_address_for_building_check": ("exact_address",),
+    "floor_unit": ("floor_unit",),
+    "floor_or_unit_if_known": ("floor_unit",),
+    "area": ("area",),
+    "area_if_known": ("area",),
+    "business_concept": ("business_activity",),
+    "business_type": ("business_activity",),
+    "business_type_if_known": ("business_activity",),
+    "current_business_type": ("business_activity",),
+    "target_business_type": ("business_activity",),
+    "target_permit_or_business_type": ("business_activity",),
+    "sales_items": ("business_activity",),
+    "service_goal": ("business_activity",),
+    "liquor_sales": ("liquor_sales",),
+    "liquor_sales_if_relevant": ("liquor_sales",),
+    "signboard": ("signboard_planned",),
+    "signboard_type": ("signboard_type",),
+    "signboard_size": ("signboard_size",),
+    "signboard_location": ("signboard_location",),
+    "signboard_image": ("signboard_image",),
+    "owner_consent": ("owner_consent",),
+    "owner_or_manager_permission": ("owner_consent",),
+    "manager_consent": ("owner_consent",),
+    "outdoor_space": ("outdoor_space_planned",),
+    "outdoor_location": ("outdoor_location",),
+    "outdoor_area": ("outdoor_area",),
+    "lease_contract": ("lease_contract",),
+    "takeover_or_existing_business": ("takeover_type",),
+    "takeover_type": ("takeover_type",),
+    "hygieneTraining": ("hygieneTraining",),
+    "hygiene_training": ("hygieneTraining",),
+    "healthCertificate": ("healthCertificate",),
+    "health_certificate": ("healthCertificate",),
+    "fireCertificate": ("fireCertificate",),
+    "fire_certificate": ("fireCertificate",),
+}
 
 
 class QuestionPlanner:
@@ -31,6 +76,10 @@ class QuestionPlanner:
         self.graph_rag = graph_rag
 
     def build_question_plan(self, case: dict[str, Any]) -> list[dict[str, Any]]:
+        minju_questions = self.build_minju_question_plan(case, buckets=("requiredNow",))
+        if minju_questions:
+            return minju_questions
+
         graph_rag_questions = self.graph_rag.build_question_plan(case)
         if graph_rag_questions:
             return self.filter_question_plan(case, graph_rag_questions)
@@ -38,12 +87,73 @@ class QuestionPlanner:
         case.setdefault("ai", {})["questionSource"] = "catalog"
         return self.filter_question_plan(case, QUESTION_BANK)
 
+    def build_minju_question_plan(
+        self,
+        case: dict[str, Any],
+        buckets: tuple[str, ...] = ("requiredNow", "recommendedNext"),
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        fields = self.minju_missing_fields(case, buckets=buckets)
+        questions = self.questions_for_fields(fields)
+        filtered = self.filter_question_plan(case, questions)
+        if filtered:
+            case.setdefault("ai", {})["questionSource"] = "minju_missing_info"
+        return filtered[: limit or MAX_TOTAL_QUESTIONS]
+
+    def minju_missing_fields(self, case: dict[str, Any], buckets: tuple[str, ...]) -> list[str]:
+        missing = self.minju_summary(case).get("missingInfo") or {}
+        fields: list[str] = []
+        for bucket in buckets:
+            for item in missing.get(bucket) or []:
+                for field in self.fields_for_minju_item(case, item):
+                    append_unique(fields, field)
+        return fields
+
+    @classmethod
+    def fields_for_minju_item(cls, case: dict[str, Any], item: Any) -> list[str]:
+        if isinstance(item, dict):
+            raw_id = str(item.get("id") or item.get("field") or "").strip()
+        else:
+            raw_id = str(item or "").strip()
+        if not raw_id:
+            return []
+
+        field_ids = list(MINJU_FIELD_ALIASES.get(raw_id, (raw_id,)))
+        if raw_id in {"address", "base_address", "detailed_address", "detailed_address_for_building_check"}:
+            if slot_value(case, "exact_address") and not cls.floor_unit_known(case):
+                field_ids = ["floor_unit"]
+        return field_ids
+
+    @staticmethod
+    def questions_for_fields(fields: list[str]) -> list[dict[str, Any]]:
+        questions: list[dict[str, Any]] = []
+        for field in fields:
+            source = next((item for item in QUESTION_BANK if item["field"] == field), None)
+            if source and not any(item["field"] == field for item in questions):
+                questions.append(deepcopy(source))
+        return questions
+
+    @staticmethod
+    def minju_summary(case: dict[str, Any]) -> dict[str, Any]:
+        draft = ((case.get("minjuDraft") or {}).get("summary") or {})
+        if draft:
+            return draft
+        return ((case.get("minjuIntake") or {}).get("summary") or {})
+
     @staticmethod
     def filter_question_plan(case: dict[str, Any], questions: list[dict[str, Any]]) -> list[dict[str, Any]]:
         pending = []
         for question in questions:
             field = question["field"]
+            if field in SYSTEM_DERIVED_FIELDS:
+                continue
             if field == "exact_address" and slot_value(case, "exact_address"):
+                continue
+            if field == "floor_unit" and QuestionPlanner.floor_unit_known(case):
+                continue
+            if field == "signboard_planned" and "signage_planned" in as_list(slot_value(case, "condition_screening")):
+                continue
+            if field == "outdoor_space_planned" and "outdoor_space_planned" in as_list(slot_value(case, "condition_screening")):
                 continue
             if field == "condition_screening" and "condition_screening" in case["slots"]:
                 continue
@@ -56,6 +166,13 @@ class QuestionPlanner:
                     options.append(unknown_option())
             pending.append(normalized)
         return pending[:MAX_TOTAL_QUESTIONS]
+
+    @staticmethod
+    def floor_unit_known(case: dict[str, Any]) -> bool:
+        if slot_value(case, "floor_unit"):
+            return True
+        address = str(slot_value(case, "exact_address") or "")
+        return bool(re.search(r"(?:지하\s*)?\d+\s*층|[A-Za-z]?\d{1,5}\s*호", address))
 
     def start_or_finish_question_loop(self, case: dict[str, Any]) -> dict[str, Any]:
         loop = case["questionLoop"]
@@ -116,7 +233,21 @@ class QuestionPlanner:
         """
         known = {item["field"] for item in QUESTION_BANK}
         answered = set(case["questionLoop"]["answeredFields"])
-        return [field for field in fields if field in known and field not in answered]
+        filtered: list[str] = []
+        conditions = set(str(item) for item in as_list(slot_value(case, "condition_screening")))
+        for field in fields:
+            if field not in known or field in answered or field in SYSTEM_DERIVED_FIELDS:
+                continue
+            if field == "floor_unit" and self.floor_unit_known(case):
+                continue
+            if field == "signboard_planned" and "signage_planned" in conditions:
+                continue
+            if field == "outdoor_space_planned" and "outdoor_space_planned" in conditions:
+                continue
+            if field in case["slots"] and slot_value(case, field) not in (None, "", "unknown", []):
+                continue
+            append_unique(filtered, field)
+        return filtered
 
     def apply_slot_answer(self, case: dict[str, Any], input_payload: dict[str, Any]) -> None:
         loop = case["questionLoop"]
@@ -146,6 +277,16 @@ class QuestionPlanner:
             if field == "condition_screening" and isinstance(value, list):
                 for item in value:
                     append_condition(case, item)
+            if field == "floor_unit":
+                self.merge_floor_unit_into_address(case, str(value))
+            if field == "signboard_planned" and value is True:
+                append_condition(case, "signage_planned")
+            if field == "outdoor_space_planned" and value is True:
+                append_condition(case, "outdoor_space_planned")
+            if field in {"signboard_type", "signboard_size", "signboard_location", "signboard_image"}:
+                append_condition(case, "signage_planned")
+            if field in {"outdoor_location", "outdoor_area"}:
+                append_condition(case, "outdoor_space_planned")
 
         case["answers"].append({
             "id": f"answer_{uuid4().hex[:10]}",
@@ -189,6 +330,16 @@ class QuestionPlanner:
         return text
 
     @staticmethod
+    def merge_floor_unit_into_address(case: dict[str, Any], value: str) -> None:
+        if not value or value == "unknown":
+            return
+        address = str(slot_value(case, "exact_address") or "").strip()
+        if not address or value in address:
+            return
+        merged = f"{address}, {value}"
+        set_slot(case, "exact_address", merged, merged, "도로명/지번 주소 + 층/호수")
+
+    @staticmethod
     def is_unknown_text(text: str) -> bool:
         compact = re.sub(r"\s+", "", text)
         return compact in {"미정", "모름", "몰라요", "아직몰라요", "아직몰라", "정하지않았어요"}
@@ -207,6 +358,8 @@ class QuestionPlanner:
         loop["status"] = "idle"
         loop["current"] = None
         for field in fields:
+            if field in SYSTEM_DERIVED_FIELDS:
+                continue
             if field in loop["answeredFields"]:
                 continue
             source = next((item for item in QUESTION_BANK if item["field"] == field), None)
@@ -223,6 +376,22 @@ class QuestionPlanner:
                 loop["pendingQuestions"].append(deepcopy(source))
             if field in loop["unknownFields"]:
                 loop["unknownFields"].remove(field)
+
+    def add_edit_questions(self, case: dict[str, Any], fields: list[str]) -> None:
+        loop = case["questionLoop"]
+        loop["status"] = "idle"
+        loop["current"] = None
+        loop["stopReason"] = ""
+        loop["maxTotalQuestions"] = max(loop["maxTotalQuestions"], loop["totalAsked"] + len(fields) + 2)
+        for field in fields:
+            if field in SYSTEM_DERIVED_FIELDS:
+                continue
+            for bucket in ("answeredFields", "unknownFields", "skippedFields"):
+                if field in loop[bucket]:
+                    loop[bucket].remove(field)
+            source = next((item for item in QUESTION_BANK if item["field"] == field), None)
+            if source:
+                loop["pendingQuestions"].append(deepcopy(source))
 
 
 question_planner = QuestionPlanner()

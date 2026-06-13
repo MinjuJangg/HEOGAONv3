@@ -1,6 +1,7 @@
 export type ViewType =
   | "slot_question"
   | "diagnosis"
+  | "understanding_review"
   | "documents"
   | "inquiry"
   | "answer_review"
@@ -37,6 +38,7 @@ export interface ApiEnvelope {
 export type ApiView =
   | SlotQuestionView
   | DiagnosisView
+  | UnderstandingReviewView
   | DocumentsView
   | InquiryView
   | AnswerReviewView
@@ -87,6 +89,7 @@ export interface DiagnosisView {
   type: "diagnosis";
   title: string;
   headline: string;
+  guidance?: DiagnosisGuidance;
   candidatePermits: Array<{
     name: string;
     status: "candidate";
@@ -96,10 +99,43 @@ export interface DiagnosisView {
   nextButtonLabel: string;
 }
 
+export interface DiagnosisGuidance {
+  title?: string;
+  headline?: string;
+  provider: "rule" | "gms" | "openai" | string;
+  decisionStatus?: string;
+  suitability?: "available" | "needs_info" | "needs_check" | "blocked" | "pending" | string;
+  suitabilityTitle?: string;
+  suitabilitySummary?: string;
+  summary?: string;
+  finalResponseDraft?: string;
+  apiStatusItems: string[];
+  buildingItems: string[];
+  canSayNow: string[];
+  cannotConfirmYet: string[];
+  questionsToAsk: string[];
+  procedureSteps: string[];
+  documentOrderItems: string[];
+  departmentItems: string[];
+}
+
 export interface DecisionBlock {
   type: "ready_for_documents" | "needs_user_info" | "needs_department_check" | "needs_user_decision";
   title: string;
   items: string[];
+}
+
+export interface UnderstandingReviewView {
+  type: "understanding_review";
+  title: string;
+  subtitle?: string;
+  items: Array<{ label: string; value: string }>;
+  apiItems: string[];
+  buildingItems: string[];
+  suitabilityTitle?: string;
+  suitabilitySummary?: string;
+  nextButtonLabel: string;
+  editButtonLabel: string;
 }
 
 export interface DocumentsView {
@@ -124,6 +160,12 @@ export interface DocumentItem {
   prepareInfo: string[];
   steps: string[];
   canPrepareBeforeInquiry: boolean;
+  issuer?: string;
+  submitTo?: string;
+  submissionPhase?: string;
+  blockingPrerequisites?: string[];
+  dependencyNote?: string;
+  graphPrerequisites?: string;
 }
 
 export interface InquiryView {
@@ -233,4 +275,11 @@ export type TurnInput =
   | { type: "inquiry_channel"; channel: "phone" | "online" | "visit" }
   | { type: "consultation_answer"; text: string };
 
-export type FlowActionId = "primary" | "restart" | "documents" | "inquiry" | "dashboard" | "submitted";
+export type FlowActionId =
+  | "primary"
+  | "restart"
+  | "documents"
+  | "inquiry"
+  | "dashboard"
+  | "submitted"
+  | "edit_understanding";

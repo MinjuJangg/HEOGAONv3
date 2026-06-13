@@ -252,6 +252,16 @@
         word-break: keep-all;
       }
 
+      .document-prep-meta {
+        display: block;
+        margin: 0;
+        color: #657184;
+        font-size: 12px;
+        font-weight: 640;
+        line-height: 1.45;
+        word-break: keep-all;
+      }
+
       .document-prep-link {
         width: fit-content;
         display: inline-flex;
@@ -509,6 +519,37 @@
         gap: 8px;
       }
 
+      .document-detail-meta-grid {
+        display: grid;
+        gap: 8px;
+      }
+
+      .document-detail-meta-card {
+        display: grid;
+        gap: 5px;
+        padding: 12px;
+        border-radius: 14px;
+        border: 1px solid #dfe8f4;
+        background: #f8fbff;
+      }
+
+      .document-detail-meta-text,
+      .document-detail-note {
+        color: #526176;
+        font-size: 13px;
+        font-weight: 650;
+        line-height: 1.48;
+        word-break: keep-all;
+      }
+
+      .document-detail-note {
+        margin: 0;
+        padding: 11px 12px;
+        border-radius: 14px;
+        background: #f7f9fc;
+        border: 1px solid #e5ebf3;
+      }
+
       .document-detail-label {
         color: var(--text);
         font-size: 13px;
@@ -523,6 +564,10 @@
         margin: 0;
         padding: 0;
         list-style: none;
+      }
+
+      .document-detail-fields-list {
+        display: grid;
       }
 
       .document-detail-field {

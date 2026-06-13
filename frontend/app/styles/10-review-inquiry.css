@@ -737,6 +737,15 @@
         border-bottom: 1px solid #dce5f0;
       }
 
+      .understanding-actions {
+        display: grid;
+        gap: 10px;
+      }
+
+      .understanding-actions .reset-confirm-secondary {
+        width: 100%;
+      }
+
       .missing-summary-list {
         margin: 0;
         padding: 0;

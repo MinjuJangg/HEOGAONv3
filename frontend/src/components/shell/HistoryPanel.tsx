@@ -236,6 +236,7 @@ function focusText(envelope: ApiEnvelope | null) {
   if (!view) return "가게 준비 내용을 입력해 주세요.";
   if (view.type === "slot_question") return "답하면 다음 질문으로 넘어가요.";
   if (view.type === "diagnosis") return "결과를 확인하고 서류로 넘어가세요.";
+  if (view.type === "understanding_review") return "이해한 내용이 맞는지 확인하세요.";
   if (view.type === "documents") return "완료한 서류를 체크하세요.";
   if (view.type === "inquiry") return "담당 부서에 확인할 차례예요.";
   if (view.type === "answer_review") return "받은 답변을 저장했어요.";
@@ -248,6 +249,7 @@ function resumeLabel(envelope: ApiEnvelope | null) {
   if (!view) return "입력으로 돌아가기";
   if (view.type === "slot_question") return "질문으로 돌아가기";
   if (view.type === "diagnosis") return "결과로 돌아가기";
+  if (view.type === "understanding_review") return "확인 화면으로 돌아가기";
   if (view.type === "documents") return "서류로 돌아가기";
   if (view.type === "inquiry") return "문의로 돌아가기";
   if (view.type === "answer_review") return "답변으로 돌아가기";

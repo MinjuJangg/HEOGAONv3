@@ -43,7 +43,7 @@ Copy `.env.example` to `.env` or export the variables before running:
 ```bash
 cp .env.example .env
 export LLM_API_KEY="..."
-export LLM_MODEL="gpt-5.5"
+export LLM_MODEL="gpt-4.1"
 export LLM_BASE_URL="https://gms.ssafy.io/gmsapi/api.openai.com/v1"
 ```
 

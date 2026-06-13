@@ -113,6 +113,23 @@ const views: Record<ViewType, ApiView> = {
     ],
     nextButtonLabel: "서류 보러가기",
   },
+  understanding_review: {
+    type: "understanding_review",
+    title: "이렇게 이해했어요",
+    subtitle: "맞으면 서류 준비 순서로 넘어가고, 다르면 지금 수정할 수 있어요.",
+    items: [
+      { label: "업종/판매품목", value: "디저트 카페" },
+      { label: "정확한 주소", value: "서울특별시 마포구 포은로 63, 1층 101호" },
+      { label: "주류 판매 여부", value: "아니요" },
+      { label: "간판·외부공간·가스 등 추가 조건", value: "간판/옥외광고물 + 외부 테이블/보도 사용" },
+    ],
+    apiItems: ["건축물대장: 확인됨", "용도/업종 판정: 확인됨", "동일 장소 이력: 보류"],
+    buildingItems: ["주용도: 제2종근린생활시설", "대장상 면적: 49.5㎡"],
+    suitabilityTitle: "진행 가능성이 높아요",
+    suitabilitySummary: "건축물대장과 업종 판정 결과를 기준으로 진행 가능성이 높게 나왔어요.",
+    nextButtonLabel: "맞아요, 계속",
+    editButtonLabel: "수정할래요",
+  },
   documents: {
     type: "documents",
     title: "먼저 준비할 서류예요",
@@ -219,6 +236,7 @@ const views: Record<ViewType, ApiView> = {
 const progressStageByView: Record<ViewType, string> = {
   slot_question: "intake",
   diagnosis: "diagnosis",
+  understanding_review: "diagnosis",
   documents: "documents",
   inquiry: "inquiry",
   answer_review: "inquiry",
@@ -229,6 +247,7 @@ const progressStageByView: Record<ViewType, string> = {
 export const devViewLabels: Array<{ type: ViewType; label: string }> = [
   { type: "slot_question", label: "질문" },
   { type: "diagnosis", label: "진단" },
+  { type: "understanding_review", label: "확인" },
   { type: "documents", label: "서류" },
   { type: "inquiry", label: "문의" },
   { type: "answer_review", label: "답변" },

@@ -6,7 +6,7 @@ export function primaryActionState(
   freeText: string,
   consultationText: string,
   pending: boolean,
-  completedDocumentIds: string[] = [],
+  _completedDocumentIds: string[] = [],
 ) {
   if (view.type === "inquiry" && view.mode === "channels") return null;
 
@@ -17,10 +17,8 @@ export function primaryActionState(
     label = view.nextButtonLabel;
     disabled = pending || (view.inputMode === "free_text" ? freeText.trim().length < 1 : selectedIds.length === 0);
   } else if (view.type === "documents") {
-    const completedSet = new Set(completedDocumentIds);
-    const allDocumentsCompleted = view.documents.length === 0 || view.documents.every((document) => completedSet.has(document.id));
-    label = allDocumentsCompleted ? view.nextButtonLabel : "남은 서류 체크";
-    disabled = pending || !allDocumentsCompleted;
+    label = view.nextButtonLabel;
+    disabled = pending;
   } else if (view.type === "inquiry") {
     label = "답변 저장하기";
     disabled = pending || consultationText.trim().length < 2;

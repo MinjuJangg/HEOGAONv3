@@ -5,6 +5,7 @@ import { DocumentsView } from "@/components/views/DocumentsView";
 import { InquiryView } from "@/components/views/InquiryView";
 import { SlotQuestionView } from "@/components/views/SlotQuestionView";
 import { SubmittedView } from "@/components/views/SubmittedView";
+import { UnderstandingReviewView } from "@/components/views/UnderstandingReviewView";
 import type { ApiView, DocumentItem, FlowActionId } from "@/types/flow";
 
 export function FlowView({
@@ -24,6 +25,7 @@ export function FlowView({
   onCloseDocument,
   onDashboardContinue,
   onDashboardAction,
+  onAction,
   dashboardContinueDisabled,
 }: {
   view: ApiView;
@@ -42,6 +44,7 @@ export function FlowView({
   onCloseDocument: () => void;
   onDashboardContinue: () => void;
   onDashboardAction: (actionId: FlowActionId) => void;
+  onAction: (actionId: FlowActionId) => void;
   dashboardContinueDisabled: boolean;
 }) {
   if (view.type === "slot_question") {
@@ -58,6 +61,7 @@ export function FlowView({
   }
 
   if (view.type === "diagnosis") return <DiagnosisView view={view} />;
+  if (view.type === "understanding_review") return <UnderstandingReviewView view={view} onAction={onAction} />;
 
   if (view.type === "documents") {
     return (

@@ -8,13 +8,39 @@ from app.services.consultation_analyzer import ConsultationAnalyzer, consultatio
 from app.services.document_service import DocumentService, document_service
 from app.services.inquiry_service import InquiryService, inquiry_service
 from app.services.intake_agent import IntakeAgent, intake_agent
+from app.services.minju_pipeline_bridge import MinjuPipelineBridge, minju_pipeline_bridge
 from app.services.question_planner import QuestionPlanner, question_planner
-from app.services.slot_utils import now_iso
+from app.services.slot_utils import as_list, now_iso, slot_value
 from app.services.view_builder import ViewBuilder, view_builder
 
 
 class FlowInputError(ValueError):
     pass
+
+
+FOLLOWUP_SKIP_FIELDS = {
+    "area",
+    "lease_contract",
+    "hygieneTraining",
+    "healthCertificate",
+    "fireCertificate",
+    "signboard_image",
+}
+
+FOLLOWUP_PRIORITY = [
+    "liquor_sales",
+    "manufacturing_or_simple_sale",
+    "on_site_consumption",
+    "condition_screening",
+    "signboard_planned",
+    "signboard_type",
+    "signboard_size",
+    "owner_consent",
+    "outdoor_space_planned",
+    "outdoor_location",
+    "outdoor_area",
+    "takeover_type",
+]
 
 
 class CaseFlowService:
@@ -26,6 +52,7 @@ class CaseFlowService:
         documents: DocumentService = document_service,
         inquiries: InquiryService = inquiry_service,
         consultations: ConsultationAnalyzer = consultation_analyzer,
+        minju: MinjuPipelineBridge = minju_pipeline_bridge,
         views: ViewBuilder = view_builder,
     ) -> None:
         self.repository = repository
@@ -34,6 +61,7 @@ class CaseFlowService:
         self.documents = documents
         self.inquiries = inquiries
         self.consultations = consultations
+        self.minju = minju
         self.views = views
 
     @property
@@ -42,10 +70,13 @@ class CaseFlowService:
 
     def create_case(self, raw_text: str) -> dict[str, Any]:
         case = new_case(raw_text)
-        self.intake.understand(case)
+        self.minju.bootstrap(case)
+        self.intake.understand(case, use_llm=(case.get("minjuDraft") or {}).get("status") != "ok")
         case["questionLoop"]["pendingQuestions"] = self.questions.build_question_plan(case)
         self.repository.add(case)
-        return self.questions.start_or_finish_question_loop(case)
+        case = self.questions.start_or_finish_question_loop(case)
+        self.sync_minju_outputs(case)
+        return case
 
     def apply_turn(self, case_id: str, input_payload: dict[str, Any]) -> dict[str, Any]:
         case = self.repository.get(case_id)
@@ -62,7 +93,9 @@ class CaseFlowService:
             self.questions.apply_slot_answer(case, input_payload)
             if case["questionLoop"].pop("retryCurrent", False):
                 return case
-            return self.questions.start_or_finish_question_loop(case)
+            case = self.questions.start_or_finish_question_loop(case)
+            self.sync_minju_outputs(case)
+            return case
 
         if input_type == "action":
             return self.apply_action(case, input_payload.get("actionId", "primary"))
@@ -120,13 +153,21 @@ class CaseFlowService:
             return case
 
         if state == "DIAGNOSIS":
+            if self.start_minju_followup_if_needed(case):
+                return case
+            case["machineState"] = "CONFIRM_UNDERSTANDING"
+            return case
+
+        if state == "CONFIRM_UNDERSTANDING":
+            if action_id == "edit_understanding":
+                self.start_understanding_edit(case)
+                return self.questions.start_or_finish_question_loop(case)
+            case["understandingConfirmed"] = True
+            self.ensure_documents_ready(case)
             case["machineState"] = "DOCUMENTS"
             return case
 
         if state == "DOCUMENTS":
-            if not self.all_documents_completed(case):
-                case["machineState"] = "DOCUMENTS"
-                return case
             if self.inquiries.has_open_inquiry(case):
                 case["machineState"] = "INQUIRY"
                 case["selectedInquiryChannel"] = "channels"
@@ -186,10 +227,101 @@ class CaseFlowService:
     def envelope(self, case: dict[str, Any]) -> dict[str, Any]:
         return self.views.envelope(case)
 
+    def sync_minju_outputs(self, case: dict[str, Any]) -> None:
+        if case["machineState"] != "DIAGNOSIS":
+            return
+        self.minju.sync(case)
+        if (case.get("minjuIntake") or {}).get("status") == "ok":
+            case["documents"] = self.documents.build_documents(case)
+            case["inquiryTasks"] = self.inquiries.build_inquiry_tasks(case)
+
     @staticmethod
     def ensure_documents_ready(case: dict[str, Any]) -> None:
         if not case.get("documents"):
             raise FlowInputError("아직 서류 단계로 이동할 수 없습니다.")
+
+    def start_minju_followup_if_needed(self, case: dict[str, Any]) -> bool:
+        fields = self.minju_followup_fields(case)
+        asked = set(case.get("minjuFollowupAskedFields") or [])
+        fields = [field for field in fields if field not in asked]
+        if not fields:
+            return False
+
+        case["minjuFollowupAskedFields"] = sorted(asked.union(fields))
+        case["questionLoop"]["maxTotalQuestions"] = max(
+            case["questionLoop"]["maxTotalQuestions"],
+            case["questionLoop"]["totalAsked"] + len(fields) + 1,
+        )
+        self.questions.add_followup_questions(case, fields)
+        self.questions.start_or_finish_question_loop(case)
+        return case["machineState"] == "NEEDS_INFO"
+
+    def minju_followup_fields(self, case: dict[str, Any]) -> list[str]:
+        summary = ((case.get("minjuIntake") or {}).get("summary") or {})
+        judgement = summary.get("aiJudgement") or {}
+        fields: list[str] = []
+        for item in judgement.get("questionsToAsk") or []:
+            for field in self.questions.fields_for_minju_item(case, item):
+                if field not in fields:
+                    fields.append(field)
+
+        for field in self.questions.minju_missing_fields(case, buckets=("recommendedNext",)):
+            if field not in fields:
+                fields.append(field)
+
+        graph = summary.get("requirementGraph") or {}
+        for item in graph.get("missingInputs") or []:
+            for field in self.questions.fields_for_minju_item(case, item):
+                if field not in fields:
+                    fields.append(field)
+
+        fields.extend(self.condition_followup_fields(case))
+        filtered = [
+            field
+            for field in self.questions.followup_fields(case, fields)
+            if field not in FOLLOWUP_SKIP_FIELDS
+        ]
+        return self.sort_followup_fields(filtered)[:6]
+
+    @staticmethod
+    def condition_followup_fields(case: dict[str, Any]) -> list[str]:
+        fields: list[str] = []
+        if slot_value(case, "liquor_sales") in (None, "", "unknown"):
+            fields.append("liquor_sales")
+        if slot_value(case, "manufacturing_or_simple_sale") in (None, "", "unknown"):
+            fields.append("manufacturing_or_simple_sale")
+        conditions = set(str(item) for item in as_list(slot_value(case, "condition_screening")))
+        if not conditions:
+            fields.extend(["signboard_planned", "outdoor_space_planned"])
+        if "signage_planned" in conditions or slot_value(case, "signboard_planned") is True:
+            fields.extend(["signboard_type", "signboard_size", "owner_consent"])
+        if "outdoor_space_planned" in conditions or slot_value(case, "outdoor_space_planned") is True:
+            fields.extend(["outdoor_location", "outdoor_area", "owner_consent"])
+        return fields
+
+    @staticmethod
+    def sort_followup_fields(fields: list[str]) -> list[str]:
+        unique: list[str] = []
+        for field in fields:
+            if field not in unique:
+                unique.append(field)
+        order = {field: index for index, field in enumerate(FOLLOWUP_PRIORITY)}
+        return sorted(unique, key=lambda field: (order.get(field, 999), unique.index(field)))
+
+    def start_understanding_edit(self, case: dict[str, Any]) -> None:
+        fields = [
+            "exact_address",
+            "business_activity",
+            "liquor_sales",
+            "manufacturing_or_simple_sale",
+            "condition_screening",
+        ]
+        conditions = set(str(item) for item in (case.get("slots", {}).get("condition_screening", {}) or {}).get("value", []) or [])
+        if "signage_planned" in conditions:
+            fields.extend(["signboard_type", "signboard_size", "owner_consent"])
+        if "outdoor_space_planned" in conditions:
+            fields.extend(["outdoor_location", "outdoor_area", "owner_consent"])
+        self.questions.add_edit_questions(case, fields)
 
 
 flow_service = CaseFlowService()

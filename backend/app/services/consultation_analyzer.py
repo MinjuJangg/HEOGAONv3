@@ -9,7 +9,7 @@ from pydantic import ValidationError
 from app.integrations.llm_client import LlmClient, llm_client
 from app.schemas.ai import ConsultationAnalysis
 from app.services.output_guard import clean_text
-from app.services.slot_utils import now_iso, slot_known
+from app.services.slot_utils import now_iso
 
 
 class ConsultationAnalyzer:
@@ -81,9 +81,6 @@ class ConsultationAnalyzer:
 
         if re.search(r"건축물|용도", answer_text):
             resolved.append("food_business_type")
-            if not slot_known(case, "building_use"):
-                new_missing.append("building_use")
-                next_action = "ask_followup"
         if re.search(r"간판|옥외광고", answer_text) and not any(task["id"] == "signage-check" for task in case["inquiryTasks"]):
             new_candidates.append({
                 "title": "간판 신고 확인",

@@ -46,6 +46,11 @@ export function DocumentsView({
             <ul className="document-prep-list">
               {view.documents.map((document) => {
                 const checked = completedDocumentIds.includes(document.id);
+                const metaLine = [
+                  document.issuer ? `발급처 ${document.issuer}` : null,
+                  document.submitTo ? `제출처 ${document.submitTo}` : null,
+                ].filter(Boolean).join(" · ");
+                const prerequisitePreview = document.blockingPrerequisites?.slice(0, 3).join(", ");
                 return (
                   <li
                     className={`document-prep-item${checked ? " is-complete" : ""}`}
@@ -73,6 +78,8 @@ export function DocumentsView({
                         <span className="document-prep-link">자세히 <Icon name="arrowRight" size={14} /></span>
                       </span>
                       <span className="document-prep-text">예상 소요 {document.perceivedDuration}</span>
+                      {metaLine ? <span className="document-prep-meta">{metaLine}</span> : null}
+                      {prerequisitePreview ? <span className="document-prep-meta">먼저 필요: {prerequisitePreview}</span> : null}
                     </button>
                   </li>
                 );
@@ -87,6 +94,8 @@ export function DocumentsView({
 }
 
 function DocumentDetail({ document, onClose }: { document: DocumentItem; onClose: () => void }) {
+  const blockers = document.blockingPrerequisites ?? [];
+
   return (
     <div className="document-detail-overlay" data-document-detail-overlay onClick={(event) => event.target === event.currentTarget && onClose()}>
       <section className="document-detail-sheet" role="dialog" aria-modal="true" aria-labelledby="documentDetailTitle">
@@ -109,6 +118,32 @@ function DocumentDetail({ document, onClose }: { document: DocumentItem; onClose
             </li>
           ))}
         </ul>
+        <div className="document-detail-meta-grid">
+          <div className="document-detail-meta-card">
+            <span className="document-detail-label">발급처</span>
+            <span className="document-detail-meta-text">{document.issuer || "해당 발급기관 확인 필요"}</span>
+          </div>
+          <div className="document-detail-meta-card">
+            <span className="document-detail-label">제출처</span>
+            <span className="document-detail-meta-text">{document.submitTo || "관할 담당부서 확인 필요"}</span>
+          </div>
+          <div className="document-detail-meta-card">
+            <span className="document-detail-label">제출 시점</span>
+            <span className="document-detail-meta-text">{document.submissionPhase || "제출 전 확인"}</span>
+          </div>
+        </div>
+        {blockers.length ? (
+          <div className="document-detail-section">
+            <span className="document-detail-label">제출 전 먼저 필요한 것</span>
+            <ul className="document-detail-fields document-detail-fields-list">
+              {blockers.map((item) => <li className="document-detail-field" key={item}>{item}</li>)}
+            </ul>
+          </div>
+        ) : null}
+        {document.graphPrerequisites ? (
+          <p className="document-detail-note">그래프 기준 선행관계: {document.graphPrerequisites}</p>
+        ) : null}
+        {document.dependencyNote ? <p className="document-detail-note">{document.dependencyNote}</p> : null}
         <div className="document-detail-section">
           <span className="document-detail-label">필요한 정보</span>
           <ul className="document-detail-fields">
