@@ -79,6 +79,7 @@ class Settings:
     graph_rag_api_key: str
     graph_rag_timeout_seconds: float
     cors_allowed_origins: tuple[str, ...]
+    admin_password: str
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -97,6 +98,7 @@ class Settings:
             graph_rag_base_url=os.getenv("GRAPH_RAG_BASE_URL", "").rstrip("/"),
             graph_rag_api_key=os.getenv("GRAPH_RAG_API_KEY", ""),
             graph_rag_timeout_seconds=float(os.getenv("GRAPH_RAG_TIMEOUT_SECONDS", "8")),
+            admin_password=os.getenv("ADMIN_PASSWORD", ""),
             cors_allowed_origins=_env_csv(
                 "CORS_ALLOWED_ORIGINS",
                 (
