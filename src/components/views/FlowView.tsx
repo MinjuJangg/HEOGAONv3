@@ -1,10 +1,14 @@
+import { AddressSearchView } from "@/components/views/AddressSearchView";
 import { DashboardView } from "@/components/views/DashboardView";
 import { DiagnosisView } from "@/components/views/DiagnosisView";
 import { DocumentsView } from "@/components/views/DocumentsView";
 import { SlotQuestionView } from "@/components/views/SlotQuestionView";
 import { SubmittedView } from "@/components/views/SubmittedView";
 import { UnderstandingReviewView } from "@/components/views/UnderstandingReviewView";
+import type { BuildingLedgerRaw, ResolvedAddress } from "@/lib/address";
 import type { ApiView, DocumentItem, FlowActionId } from "@/types/flow";
+
+const ADDRESS_FIELD = "exact_address";
 
 export function FlowView({
   view,
@@ -21,6 +25,8 @@ export function FlowView({
   onDashboardContinue,
   onDashboardAction,
   onAction,
+  onAddressResolved,
+  onAddressClear,
   dashboardContinueDisabled,
 }: {
   view: ApiView;
@@ -37,9 +43,14 @@ export function FlowView({
   onDashboardContinue: () => void;
   onDashboardAction: (actionId: FlowActionId) => void;
   onAction: (actionId: FlowActionId) => void;
+  onAddressResolved: (address: ResolvedAddress, building: BuildingLedgerRaw | null) => void;
+  onAddressClear: () => void;
   dashboardContinueDisabled: boolean;
 }) {
   if (view.type === "slot_question") {
+    if (view.field === ADDRESS_FIELD) {
+      return <AddressSearchView view={view} onResolved={onAddressResolved} onClear={onAddressClear} onUnknown={onUnknown} />;
+    }
     return (
       <SlotQuestionView
         view={view}
