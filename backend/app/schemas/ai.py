@@ -21,16 +21,3 @@ class IntakeResult(BaseModel):
     confidence: float = 0.0
 
 
-class InquiryCandidate(BaseModel):
-    title: str
-    department: str
-    reason: str = ""
-
-
-class ConsultationAnalysis(BaseModel):
-    summary: str
-    resolved_items: list[str] = Field(default_factory=list)
-    new_missing_fields: list[str] = Field(default_factory=list)
-    new_inquiry_candidates: list[InquiryCandidate] = Field(default_factory=list)
-    next_action: Literal["ask_followup", "inquiry", "documents", "dashboard"] = "dashboard"
-    confidence: float = 0.0

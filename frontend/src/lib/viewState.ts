@@ -4,12 +4,9 @@ export function primaryActionState(
   view: ApiView,
   selectedIds: string[],
   freeText: string,
-  consultationText: string,
   pending: boolean,
   _completedDocumentIds: string[] = [],
 ) {
-  if (view.type === "inquiry" && view.mode === "channels") return null;
-
   let label = "다음";
   let disabled = pending;
 
@@ -19,9 +16,6 @@ export function primaryActionState(
   } else if (view.type === "documents") {
     label = view.nextButtonLabel;
     disabled = pending;
-  } else if (view.type === "inquiry") {
-    label = "답변 저장하기";
-    disabled = pending || consultationText.trim().length < 2;
   } else {
     label = view.nextButtonLabel;
   }
@@ -34,7 +28,6 @@ export function progressFor(stage: string) {
     { key: "intake", label: "정보 수집" },
     { key: "diagnosis", label: "확인 결과" },
     { key: "documents", label: "서류" },
-    { key: "inquiry", label: "문의" },
     { key: "dashboard", label: "진행 상황" },
     { key: "submitted", label: "제출 완료" },
   ];
@@ -43,7 +36,6 @@ export function progressFor(stage: string) {
     intake: "정보 수집",
     diagnosis: "확인 결과",
     documents: "서류",
-    inquiry: "문의",
     dashboard: "진행 상황",
     submitted: "제출 완료",
   };

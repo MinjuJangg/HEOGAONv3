@@ -24,7 +24,6 @@ export function HeogaonFlowApp() {
   const [inputText, setInputText] = useState("");
   const [freeText, setFreeText] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [consultationText, setConsultationText] = useState("");
   const [activeDocument, setActiveDocument] = useState<DocumentItem | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
@@ -36,7 +35,7 @@ export function HeogaonFlowApp() {
   const showLanding = !view;
   const questionType = view?.type || "landing";
   const primary = view
-    ? primaryActionState(view, selectedIds, freeText, consultationText, pending, envelope?.statePatch.completedDocumentIds || [])
+    ? primaryActionState(view, selectedIds, freeText, pending, envelope?.statePatch.completedDocumentIds || [])
     : null;
   const progress = progressFor(envelope?.caseState.progressStage || "intake");
   const ready = splashPhase === "done";
@@ -119,9 +118,6 @@ export function HeogaonFlowApp() {
       const response = await sendTurn(caseId, input);
       setEnvelope(response);
       resetTransientInputs();
-      if (input.type === "consultation_answer") {
-        setConsultationText("");
-      }
     });
   }
 
@@ -137,7 +133,6 @@ export function HeogaonFlowApp() {
     setInputText("");
     setSelectedIds([]);
     setFreeText("");
-    setConsultationText("");
     setActiveDocument(null);
     setHistoryOpen(false);
     setResetConfirmOpen(false);
@@ -156,7 +151,6 @@ export function HeogaonFlowApp() {
     setInputText("");
     setSelectedIds([]);
     setFreeText("");
-    setConsultationText("");
     setActiveDocument(null);
     setHistoryOpen(false);
     setResetConfirmOpen(false);
@@ -176,11 +170,6 @@ export function HeogaonFlowApp() {
         value: freeText,
         unknown: selectedIds.includes("unknown"),
       });
-      return;
-    }
-
-    if (view.type === "inquiry" && view.mode !== "channels") {
-      handleTurn({ type: "consultation_answer", text: consultationText });
       return;
     }
 
@@ -220,14 +209,11 @@ export function HeogaonFlowApp() {
                 view={view}
                 selectedIds={selectedIds}
                 freeText={freeText}
-                consultationText={consultationText}
                 activeDocument={activeDocument}
                 completedDocumentIds={envelope?.statePatch.completedDocumentIds || []}
                 onSelectIds={setSelectedIds}
                 onFreeText={setFreeText}
                 onUnknown={submitUnknown}
-                onConsultationText={setConsultationText}
-                onChannel={(channel) => handleTurn({ type: "inquiry_channel", channel })}
                 onToggleDocument={(documentId, completed) => handleTurn({ type: "document_toggle", documentId, completed })}
                 onOpenDocument={setActiveDocument}
                 onCloseDocument={() => setActiveDocument(null)}

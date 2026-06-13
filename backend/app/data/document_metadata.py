@@ -58,7 +58,7 @@ DOCUMENT_METADATA: list[dict[str, Any]] = [
         "issuer": "관할 구청 위생과",
         "submitTo": "세무서/홈택스 사업자등록 신청 시 선행 제출자료로 사용",
         "submissionPhase": "사업자등록 전",
-        "blockingPrerequisites": ["영업신고서 접수", "임대차계약서 또는 사용권한 증빙", "위생교육 수료증", "건강진단결과서", "소방완비증명서(해당 시)"],
+        "blockingPrerequisites": ["영업신고서 접수", "임대차계약서 또는 사용권한 증빙", "위생교육 수료증", "건강진단결과서", "소방완비증명서"],
         "dependencyNote": "사업자등록증 발급 전에 먼저 받아야 하는 핵심 선행 결과물이에요.",
     },
     {
@@ -122,7 +122,7 @@ def document_metadata_for(title: str) -> dict[str, Any]:
         "submitTo": "관할 담당부서 확인 필요",
         "submissionPhase": "제출 전 확인",
         "blockingPrerequisites": [],
-        "dependencyNote": "담당부서 문의로 발급처와 제출처를 최종 확인해야 해요.",
+        "dependencyNote": "공식 안내 기준으로 발급처와 제출처를 최종 확인해야 해요.",
     }
 
 

@@ -1,8 +1,6 @@
-import { AnswerReviewView } from "@/components/views/AnswerReviewView";
 import { DashboardView } from "@/components/views/DashboardView";
 import { DiagnosisView } from "@/components/views/DiagnosisView";
 import { DocumentsView } from "@/components/views/DocumentsView";
-import { InquiryView } from "@/components/views/InquiryView";
 import { SlotQuestionView } from "@/components/views/SlotQuestionView";
 import { SubmittedView } from "@/components/views/SubmittedView";
 import { UnderstandingReviewView } from "@/components/views/UnderstandingReviewView";
@@ -12,14 +10,11 @@ export function FlowView({
   view,
   selectedIds,
   freeText,
-  consultationText,
   activeDocument,
   completedDocumentIds,
   onSelectIds,
   onFreeText,
   onUnknown,
-  onConsultationText,
-  onChannel,
   onToggleDocument,
   onOpenDocument,
   onCloseDocument,
@@ -31,14 +26,11 @@ export function FlowView({
   view: ApiView;
   selectedIds: string[];
   freeText: string;
-  consultationText: string;
   activeDocument: DocumentItem | null;
   completedDocumentIds: string[];
   onSelectIds: (ids: string[]) => void;
   onFreeText: (value: string) => void;
   onUnknown: () => void;
-  onConsultationText: (value: string) => void;
-  onChannel: (channel: "phone" | "online" | "visit") => void;
   onToggleDocument: (documentId: string, completed: boolean) => void;
   onOpenDocument: (document: DocumentItem) => void;
   onCloseDocument: () => void;
@@ -76,11 +68,6 @@ export function FlowView({
     );
   }
 
-  if (view.type === "inquiry") {
-    return <InquiryView view={view} value={consultationText} onChange={onConsultationText} onChannel={onChannel} />;
-  }
-
-  if (view.type === "answer_review") return <AnswerReviewView view={view} />;
   if (view.type === "dashboard") {
     return <DashboardView view={view} onContinue={onDashboardContinue} onAction={onDashboardAction} continueDisabled={dashboardContinueDisabled} />;
   }

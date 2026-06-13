@@ -143,7 +143,7 @@ class MinjuPipelineBridge:
     def inquiry_provider_for_case(self, case: dict[str, Any]) -> str:
         if os.getenv("MINJU_INQUIRY_PROVIDER"):
             return os.getenv("MINJU_INQUIRY_PROVIDER", "rule").strip().lower()
-        return "gms" if settings.llm_available else "rule"
+        return "rule"
 
     @staticmethod
     def _ensure_gms_env() -> None:

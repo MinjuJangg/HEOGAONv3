@@ -4,9 +4,7 @@ from typing import Any
 
 from app.models.case_factory import new_case
 from app.repositories.case_repository import InMemoryCaseRepository, case_repository
-from app.services.consultation_analyzer import ConsultationAnalyzer, consultation_analyzer
 from app.services.document_service import DocumentService, document_service
-from app.services.inquiry_service import InquiryService, inquiry_service
 from app.services.intake_agent import IntakeAgent, intake_agent
 from app.services.minju_pipeline_bridge import MinjuPipelineBridge, minju_pipeline_bridge
 from app.services.question_planner import QuestionPlanner, question_planner
@@ -50,8 +48,6 @@ class CaseFlowService:
         intake: IntakeAgent = intake_agent,
         questions: QuestionPlanner = question_planner,
         documents: DocumentService = document_service,
-        inquiries: InquiryService = inquiry_service,
-        consultations: ConsultationAnalyzer = consultation_analyzer,
         minju: MinjuPipelineBridge = minju_pipeline_bridge,
         views: ViewBuilder = view_builder,
     ) -> None:
@@ -59,8 +55,6 @@ class CaseFlowService:
         self.intake = intake
         self.questions = questions
         self.documents = documents
-        self.inquiries = inquiries
-        self.consultations = consultations
         self.minju = minju
         self.views = views
 
@@ -109,25 +103,6 @@ class CaseFlowService:
             case["machineState"] = "DOCUMENTS"
             return case
 
-        if input_type == "inquiry_channel":
-            if case["machineState"] != "INQUIRY":
-                raise FlowInputError("현재 단계에서는 문의 방법을 선택할 수 없습니다.")
-            if not self.inquiries.has_open_inquiry(case):
-                raise FlowInputError("진행할 문의가 없습니다.")
-            if input_payload.get("channel") not in {"phone", "online", "visit"}:
-                raise FlowInputError("지원하지 않는 문의 방법입니다.")
-            case["machineState"] = "INQUIRY"
-            case["selectedInquiryChannel"] = input_payload.get("channel") or "channels"
-            return case
-
-        if input_type == "consultation_answer":
-            if case["machineState"] != "INQUIRY" or not case.get("selectedInquiryChannel") or case.get("selectedInquiryChannel") == "channels":
-                raise FlowInputError("문의 방법 선택 후 받은 답변을 저장할 수 있습니다.")
-            if not self.inquiries.has_open_inquiry(case):
-                raise FlowInputError("저장할 문의가 없습니다.")
-            self.consultations.analyze(case, input_payload.get("text") or "")
-            return case
-
         raise FlowInputError("지원하지 않는 입력입니다.")
 
     def apply_action(self, case: dict[str, Any], action_id: str) -> dict[str, Any]:
@@ -138,18 +113,12 @@ class CaseFlowService:
             self.ensure_documents_ready(case)
             case["machineState"] = "DOCUMENTS"
             return case
-        if action_id == "inquiry":
-            if not self.inquiries.has_open_inquiry(case):
-                raise FlowInputError("진행할 문의가 없습니다.")
-            case["machineState"] = "INQUIRY"
-            case["selectedInquiryChannel"] = "channels"
-            return case
         if action_id == "dashboard":
             self.ensure_documents_ready(case)
             case["machineState"] = "DASHBOARD"
             return case
         if action_id == "submitted":
-            case["machineState"] = "SUBMITTED" if self.all_documents_completed(case) and not self.inquiries.has_open_inquiry(case) else "DASHBOARD"
+            case["machineState"] = "SUBMITTED" if self.all_documents_completed(case) else "DASHBOARD"
             return case
 
         if state == "DIAGNOSIS":
@@ -168,25 +137,17 @@ class CaseFlowService:
             return case
 
         if state == "DOCUMENTS":
-            if self.inquiries.has_open_inquiry(case):
-                case["machineState"] = "INQUIRY"
-                case["selectedInquiryChannel"] = "channels"
-            else:
-                case["machineState"] = "DASHBOARD"
+            case["machineState"] = "DASHBOARD"
             return case
 
         if state == "INQUIRY":
-            case["machineState"] = "ANSWER_REVIEW"
+            case["machineState"] = "DASHBOARD"
             return case
 
         if state == "ANSWER_REVIEW":
             return self.route_after_answer_review(case)
 
         if state == "DASHBOARD":
-            if self.inquiries.has_open_inquiry(case):
-                case["machineState"] = "INQUIRY"
-                case["selectedInquiryChannel"] = "channels"
-                return case
             if any(document["status"] != "completed" for document in case["documents"]):
                 case["machineState"] = "DOCUMENTS"
                 return case
@@ -214,10 +175,6 @@ class CaseFlowService:
         if followups:
             self.questions.add_followup_questions(case, followups)
             return self.questions.start_or_finish_question_loop(case)
-        if analysis.get("newInquiryTasks"):
-            case["machineState"] = "INQUIRY"
-            case["selectedInquiryChannel"] = "channels"
-            return case
         if analysis.get("nextAction") == "documents":
             case["machineState"] = "DOCUMENTS" if not self.all_documents_completed(case) else "DASHBOARD"
             return case
@@ -233,7 +190,7 @@ class CaseFlowService:
         self.minju.sync(case)
         if (case.get("minjuIntake") or {}).get("status") == "ok":
             case["documents"] = self.documents.build_documents(case)
-            case["inquiryTasks"] = self.inquiries.build_inquiry_tasks(case)
+            case["inquiryTasks"] = []
 
     @staticmethod
     def ensure_documents_ready(case: dict[str, Any]) -> None:

@@ -205,7 +205,7 @@ QUESTION_BANK = [
         "field": "signboard_image",
         "label": "현장 사진",
         "question": "간판 설치 예정 위치 사진이 있나요?",
-        "why": "부서 문의나 신청서류 준비 때 현장 사진이 필요할 수 있어요.",
+        "why": "신청서류 준비 때 현장 사진이 필요할 수 있어요.",
         "inputMode": "single_select",
         "required": False,
         "options": [

@@ -116,12 +116,106 @@
         line-height: 1;
       }
 
+      .document-phase-list {
+        display: grid;
+        gap: 14px;
+      }
+
+      .document-phase {
+        display: grid;
+        gap: 9px;
+      }
+
+      .document-phase-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .document-phase-title {
+        min-width: 0;
+        color: var(--text);
+        font-size: 14px;
+        font-weight: 840;
+        line-height: 1.35;
+        word-break: keep-all;
+      }
+
+      .document-phase-note {
+        min-height: 26px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        background: #eef5ff;
+        color: var(--primary);
+        padding: 0 9px;
+        font-size: 11px;
+        font-weight: 820;
+        line-height: 1;
+        white-space: nowrap;
+      }
+
+      .document-track-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .document-track-card {
+        display: grid;
+        gap: 8px;
+        padding: 12px;
+        border: 1px solid #dfe8f4;
+        border-radius: 16px;
+        background: #ffffff;
+      }
+
+      .document-track-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .document-track-title {
+        margin: 0;
+        color: var(--text);
+        font-size: 14px;
+        font-weight: 840;
+        line-height: 1.35;
+        word-break: keep-all;
+      }
+
+      .document-track-count {
+        color: #6a7890;
+        font-size: 11px;
+        font-weight: 760;
+        line-height: 1;
+        white-space: nowrap;
+      }
+
+      .document-track-desc {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 560;
+        line-height: 1.45;
+        word-break: keep-all;
+      }
+
       .document-prep-list {
         margin: 0;
         padding: 0;
         list-style: none;
         border-top: 1px solid #dce5f0;
         border-bottom: 1px solid #dce5f0;
+      }
+
+      .document-prep-list--track {
+        border-top: 1px solid #edf2f8;
+        border-bottom: 0;
       }
 
       .document-prep-item {
@@ -540,6 +634,34 @@
         font-weight: 650;
         line-height: 1.48;
         word-break: keep-all;
+      }
+
+      .document-detail-meta-link {
+        color: #526176;
+        display: grid;
+        gap: 6px;
+        font-size: 13px;
+        font-weight: 650;
+        line-height: 1.48;
+        text-decoration: none;
+        word-break: keep-all;
+      }
+
+      .document-detail-meta-link:hover {
+        color: var(--primary);
+      }
+
+      .document-detail-meta-link-action {
+        width: fit-content;
+        min-height: 28px;
+        border-radius: 999px;
+        color: var(--primary);
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 12px;
+        font-weight: 820;
+        line-height: 1;
       }
 
       .document-detail-note {

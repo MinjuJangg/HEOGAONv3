@@ -8,7 +8,6 @@ const stageItems = [
   { key: "intake", label: "질문" },
   { key: "diagnosis", label: "진단" },
   { key: "documents", label: "서류" },
-  { key: "inquiry", label: "문의" },
   { key: "dashboard", label: "현황" },
   { key: "submitted", label: "제출" },
 ];
@@ -26,10 +25,8 @@ export function HistoryPanel({
 }) {
   const answers = envelope?.statePatch.answers || [];
   const documents = envelope?.statePatch.documents || [];
-  const tasks = envelope?.statePatch.inquiryTasks || [];
   const completedDocumentIds = envelope?.statePatch.completedDocumentIds || [];
   const questionLoop = envelope?.statePatch.questionLoop;
-  const openTasks = tasks.filter((task) => task.status === "pending");
   const pendingDocuments = documents.filter((document) => !completedDocumentIds.includes(document.id));
   const currentStage = envelope?.caseState.progressStage || "intake";
   const currentStageIndex = Math.max(0, stageItems.findIndex((item) => item.key === currentStage));
@@ -101,14 +98,13 @@ export function HistoryPanel({
               <div className="history-metrics" aria-label="진행 요약">
                 <Metric value={`${totalAsked}/${maxQuestions}`} label="질문" />
                 <Metric value={`${completedDocumentIds.length}/${documents.length || 0}`} label="서류" />
-                <Metric value={`${openTasks.length}`} label="문의" />
               </div>
             </div>
 
             <section className="history-section">
               <div className="history-section-head">
                 <h3 className="history-section-title">지금 할 일</h3>
-                <span className="history-section-count">{nextActionCount(envelope, pendingDocuments.length, openTasks.length)}개</span>
+                <span className="history-section-count">{nextActionCount(envelope, pendingDocuments.length)}개</span>
               </div>
               <ul className="history-task-list">
                 <TaskRow
@@ -128,9 +124,6 @@ export function HistoryPanel({
                     key={document.id}
                     onClick={() => onAction("documents")}
                   />
-                ))}
-                {openTasks.slice(0, 2).map((task) => (
-                  <TaskRow icon="message" title={task.title} meta={task.department} status="문의" onClick={() => onAction("inquiry")} key={task.id} />
                 ))}
               </ul>
             </section>
@@ -225,7 +218,6 @@ function TaskRow({
 function iconForStage(stage: string): "edit" | "fileCheck" | "list" | "message" | "search" | "check" {
   if (stage === "diagnosis") return "search";
   if (stage === "documents") return "fileCheck";
-  if (stage === "inquiry") return "message";
   if (stage === "dashboard") return "list";
   if (stage === "submitted") return "check";
   return "edit";
@@ -238,8 +230,6 @@ function focusText(envelope: ApiEnvelope | null) {
   if (view.type === "diagnosis") return "결과를 확인하고 서류로 넘어가세요.";
   if (view.type === "understanding_review") return "이해한 내용이 맞는지 확인하세요.";
   if (view.type === "documents") return "완료한 서류를 체크하세요.";
-  if (view.type === "inquiry") return "담당 부서에 확인할 차례예요.";
-  if (view.type === "answer_review") return "받은 답변을 저장했어요.";
   if (view.type === "dashboard") return "남은 일을 한눈에 볼 수 있어요.";
   return "제출 완료 상태예요.";
 }
@@ -251,13 +241,11 @@ function resumeLabel(envelope: ApiEnvelope | null) {
   if (view.type === "diagnosis") return "결과로 돌아가기";
   if (view.type === "understanding_review") return "확인 화면으로 돌아가기";
   if (view.type === "documents") return "서류로 돌아가기";
-  if (view.type === "inquiry") return "문의로 돌아가기";
-  if (view.type === "answer_review") return "답변으로 돌아가기";
   if (view.type === "dashboard") return "진행 상황으로 돌아가기";
   return "제출 현황으로 돌아가기";
 }
 
-function nextActionCount(envelope: ApiEnvelope | null, pendingDocumentCount: number, openTaskCount: number) {
+function nextActionCount(envelope: ApiEnvelope | null, pendingDocumentCount: number) {
   const hasCurrentView = envelope?.view ? 1 : 0;
-  return hasCurrentView + Math.min(2, pendingDocumentCount) + Math.min(2, openTaskCount);
+  return hasCurrentView + Math.min(2, pendingDocumentCount);
 }

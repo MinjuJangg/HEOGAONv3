@@ -1,4 +1,4 @@
-import type { DecisionBlock, InquiryView } from "@/types/flow";
+import type { DecisionBlock } from "@/types/flow";
 
 export type IconName =
   | "arrowRight"
@@ -76,15 +76,3 @@ export function iconForDecision(type: DecisionBlock["type"]): IconName {
   return "search";
 }
 
-export function channelIcon(id: string): IconName {
-  if (id === "phone") return "phone";
-  if (id === "online") return "monitor";
-  return "home";
-}
-
-export function channelTitle(mode: InquiryView["mode"]) {
-  if (mode === "phone") return "전화하기";
-  if (mode === "online") return "온라인 문의";
-  if (mode === "visit") return "방문 준비";
-  return "문의 방법 고르기";
-}

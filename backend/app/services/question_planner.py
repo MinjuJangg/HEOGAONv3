@@ -8,7 +8,6 @@ from uuid import uuid4
 from app.data.catalog import FIELD_VALUE_MAP, MAX_TOTAL_QUESTIONS, QUESTION_BANK, unknown_option
 from app.services.document_service import DocumentService, document_service
 from app.services.graph_rag_service import GraphRagService, graph_rag_service
-from app.services.inquiry_service import InquiryService, inquiry_service
 from app.services.slot_utils import (
     admin_term_for,
     append_condition,
@@ -21,6 +20,19 @@ from app.services.slot_utils import (
 
 
 SYSTEM_DERIVED_FIELDS = {"building_use", "area"}
+SIGNAGE_ONLY_ALLOWED_FIELDS = {
+    "business_activity",
+    "exact_address",
+    "floor_unit",
+    "condition_screening",
+    "signboard_planned",
+    "signboard_type",
+    "signboard_size",
+    "signboard_location",
+    "signboard_image",
+    "owner_consent",
+}
+TRANSFER_SKIP_FIELDS = {"hygieneTraining", "healthCertificate", "fireCertificate"}
 
 MINJU_FIELD_ALIASES: dict[str, tuple[str, ...]] = {
     "address": ("exact_address",),
@@ -68,11 +80,9 @@ class QuestionPlanner:
     def __init__(
         self,
         documents: DocumentService = document_service,
-        inquiries: InquiryService = inquiry_service,
         graph_rag: GraphRagService = graph_rag_service,
     ) -> None:
         self.documents = documents
-        self.inquiries = inquiries
         self.graph_rag = graph_rag
 
     def build_question_plan(self, case: dict[str, Any]) -> list[dict[str, Any]]:
@@ -143,9 +153,39 @@ class QuestionPlanner:
     @staticmethod
     def filter_question_plan(case: dict[str, Any], questions: list[dict[str, Any]]) -> list[dict[str, Any]]:
         pending = []
+        conditions = set(str(item) for item in as_list(slot_value(case, "condition_screening")))
+        answered = set(case.get("questionLoop", {}).get("answeredFields") or [])
+        text = f"{case.get('rawInput') or ''} {slot_value(case, 'business_activity') or ''}"
+        user_answered_conditions = "condition_screening" in answered
+        has_signage = document_service.has_affirmative_signage(
+            case,
+            text,
+            conditions,
+            user_answered_conditions,
+            "signboard_planned" in answered,
+        )
+        has_outdoor = document_service.has_affirmative_outdoor(
+            case,
+            text,
+            conditions,
+            user_answered_conditions,
+            "outdoor_space_planned" in answered,
+        )
+        signage_detail_fields = {"signboard_type", "signboard_size", "signboard_location", "signboard_image"}
+        outdoor_detail_fields = {"outdoor_location", "outdoor_area"}
         for question in questions:
             field = question["field"]
             if field in SYSTEM_DERIVED_FIELDS:
+                continue
+            if document_service.is_signage_only_case(case) and field not in SIGNAGE_ONLY_ALLOWED_FIELDS:
+                continue
+            if document_service.is_transfer_case(case) and field in TRANSFER_SKIP_FIELDS:
+                continue
+            if field in signage_detail_fields and not has_signage:
+                continue
+            if field in outdoor_detail_fields and not has_outdoor:
+                continue
+            if field == "owner_consent" and not (has_signage or has_outdoor):
                 continue
             if field == "exact_address" and slot_value(case, "exact_address"):
                 continue
@@ -218,12 +258,11 @@ class QuestionPlanner:
         case["questionLoop"]["current"] = None
         case["questionLoop"]["stopReason"] = reason
         case["machineState"] = "DIAGNOSIS"
-        # 최초 진단 때만 생성한다. 후속 질문으로 재진입할 때 다시 만들면 이미 완료/해결한
-        # 서류·문의 진행 상태가 초기화되어 완료(SUBMITTED) 화면에 영영 도달하지 못한다.
+        # 최초 진단 때만 생성한다. 후속 질문으로 재진입할 때 다시 만들면 이미 완료한
+        # 서류 진행 상태가 초기화되어 완료(SUBMITTED) 화면에 영영 도달하지 못한다.
         if not case.get("documents"):
             case["documents"] = self.documents.build_documents(case)
-        if not case.get("inquiryTasks"):
-            case["inquiryTasks"] = self.inquiries.build_inquiry_tasks(case)
+        case["inquiryTasks"] = []
 
     def followup_fields(self, case: dict[str, Any], fields: list[str]) -> list[str]:
         """후속 질문으로 실제로 물을 수 있는 슬롯 필드만 남긴다.
@@ -235,8 +274,36 @@ class QuestionPlanner:
         answered = set(case["questionLoop"]["answeredFields"])
         filtered: list[str] = []
         conditions = set(str(item) for item in as_list(slot_value(case, "condition_screening")))
+        text = f"{case.get('rawInput') or ''} {slot_value(case, 'business_activity') or ''}"
+        user_answered_conditions = "condition_screening" in answered
+        has_signage = self.documents.has_affirmative_signage(
+            case,
+            text,
+            conditions,
+            user_answered_conditions,
+            "signboard_planned" in answered,
+        )
+        has_outdoor = self.documents.has_affirmative_outdoor(
+            case,
+            text,
+            conditions,
+            user_answered_conditions,
+            "outdoor_space_planned" in answered,
+        )
+        signage_detail_fields = {"signboard_type", "signboard_size", "signboard_location", "signboard_image"}
+        outdoor_detail_fields = {"outdoor_location", "outdoor_area"}
         for field in fields:
             if field not in known or field in answered or field in SYSTEM_DERIVED_FIELDS:
+                continue
+            if self.documents.is_signage_only_case(case) and field not in SIGNAGE_ONLY_ALLOWED_FIELDS:
+                continue
+            if self.documents.is_transfer_case(case) and field in TRANSFER_SKIP_FIELDS:
+                continue
+            if field in signage_detail_fields and not has_signage:
+                continue
+            if field in outdoor_detail_fields and not has_outdoor:
+                continue
+            if field == "owner_consent" and not (has_signage or has_outdoor):
                 continue
             if field == "floor_unit" and self.floor_unit_known(case):
                 continue

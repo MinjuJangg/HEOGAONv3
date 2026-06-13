@@ -3,16 +3,16 @@
 FastAPI backend for the planning-document flow:
 
 ```text
-INTAKE -> NEEDS_INFO -> DIAGNOSIS -> DOCUMENTS -> INQUIRY
--> ANSWER_REVIEW -> DASHBOARD -> SUBMITTED
+INTAKE -> NEEDS_INFO -> DIAGNOSIS -> CONFIRM_UNDERSTANDING
+-> DOCUMENTS -> DASHBOARD -> SUBMITTED
 ```
 
 ## Responsibilities
 
 - Frontend renders only the `view.type` returned by the API.
-- Backend owns case state, step routing, question loop limits, document ordering, and inquiry routing.
-- AI is optional and only handles structured extraction, summaries, and inquiry wording.
-- GraphRAG is the primary domain expansion boundary for question candidates, documents, inquiry departments, and evidence. Catalog constants are the demo fallback.
+- Backend owns case state, step routing, question loop limits, document ordering, and submission routing.
+- AI is optional and only handles structured extraction, summaries, and judgement wording.
+- GraphRAG is the primary domain expansion boundary for question candidates, documents, and evidence. Catalog constants are the demo fallback.
 
 ## Structure
 
@@ -29,8 +29,6 @@ app/
     intake_agent.py              natural language -> slots
     question_planner.py          backend-owned question loop
     document_service.py          checklist generation/completion
-    inquiry_service.py           inquiry tasks and online drafts
-    consultation_analyzer.py     answer review and follow-up routing
     view_builder.py              backend result -> frontend envelope
     output_guard.py              no definitive/legal wording, PII masking
   flow.py                        thin compatibility facade for existing routes
