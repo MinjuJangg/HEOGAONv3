@@ -22,7 +22,13 @@ AI_JUDGEMENT_SYSTEM_PROMPT = """
 2. API/건축물대장/인허가 이력이 미조회면 "확정 불가"로 표시한다.
 3. 그래프가 산출한 서류/부서/부족정보를 우선한다.
 4. 사용자가 추가로 준 정보가 있으면 지금 당장 묻지 않는다.
-5. 결과는 JSON 하나만 반환한다.
+5. documentTiming 또는 schedulePlan이 있으면 선행서류, 공식 처리기간, blockerType, 병렬 트랙을 고려해 순서를 잡는다.
+6. 그래프의 선행관계, sequenceRank, calendarLane은 hard constraint다. GMS는 같은 sequenceRank/calendarLane 안의 병렬 가능 항목만 보정한다.
+7. 병렬 가능 항목 안에서는 공식 처리기간이 긴 항목과 지역/기관 편차가 큰 항목을 앞쪽에 둔다.
+8. documentSummary.required/conditional/later 배열도 hard constraint를 지킨 스케줄 순서로 반환한다.
+9. 업종 판단은 법령 근거를 우선한다. 「식품위생법 시행령」 제21조 제8호 가목은 휴게음식점영업을 음주행위가 허용되지 않는 영업으로, 나목은 일반음식점영업을 식사와 함께 부수적으로 음주행위가 허용되는 영업으로 본다.
+10. 사용자가 카페/커피/음료 맥락을 말했더라도 주류 판매가 true이면 최종 표시 업종은 휴게음식점영업이 아니라 일반음식점영업으로 판단한다. displayLabel은 "카페·주류 판매"처럼 사용자 표현을 보존하고 businessType은 "일반음식점영업"으로 둔다.
+11. 결과는 JSON 하나만 반환한다.
 """.strip()
 
 
@@ -44,10 +50,12 @@ def compact_for_ai(result: dict[str, Any]) -> dict[str, Any]:
     def compact_route(route: dict[str, Any]) -> dict[str, Any]:
         return {
             "permitType": route.get("permitType") or route.get("businessType"),
+            "businessType": route.get("businessType"),
             "status": route.get("status"),
             "label": route.get("label"),
             "score": route.get("score"),
             "reasons": (route.get("reasons") or [])[:3],
+            "sourceReferences": (route.get("sourceReferences") or [])[:3],
             "needsForFinal": (route.get("needsForFinal") or [])[:5],
         }
 
@@ -55,6 +63,7 @@ def compact_for_ai(result: dict[str, Any]) -> dict[str, Any]:
         return pick(item, ["id", "label", "question", "reason"])
 
     def compact_doc(item: dict[str, Any]) -> dict[str, Any]:
+        processing = item.get("processingTime") or {}
         return {
             "id": item.get("id"),
             "label": item.get("label"),
@@ -62,6 +71,15 @@ def compact_for_ai(result: dict[str, Any]) -> dict[str, Any]:
             "stage": item.get("stage"),
             "condition": item.get("condition", ""),
             "missingInputs": (item.get("missingInputs") or [])[:5],
+            "processingTime": {
+                "display": processing.get("display"),
+                "kind": processing.get("kind"),
+                "maxBusinessDays": processing.get("maxBusinessDays"),
+                "maxMinutes": processing.get("maxMinutes"),
+                "blockerType": processing.get("blockerType"),
+                "confidence": processing.get("confidence"),
+                "variance": processing.get("variance"),
+            },
         }
 
     def compact_procedure(item: dict[str, Any]) -> dict[str, Any]:
@@ -78,6 +96,22 @@ def compact_for_ai(result: dict[str, Any]) -> dict[str, Any]:
         if not isinstance(items, list):
             return []
         return [str(item.get("label") or item.get("id")) for item in items[:12] if isinstance(item, dict) and (item.get("label") or item.get("id"))]
+
+    def compact_schedule_task(item: dict[str, Any]) -> dict[str, Any]:
+        processing = item.get("processingTime") or {}
+        return {
+            "documentId": item.get("documentId"),
+            "label": item.get("label"),
+            "status": item.get("status"),
+            "priorityScore": item.get("priorityScore"),
+            "sequenceRank": item.get("sequenceRank"),
+            "recommendedStart": item.get("recommendedStart"),
+            "calendarLane": item.get("calendarLane"),
+            "dependsOn": (item.get("dependsOn") or [])[:5],
+            "processingDisplay": processing.get("display"),
+            "blockerType": processing.get("blockerType"),
+            "maxBusinessDays": processing.get("maxBusinessDays"),
+        }
 
     def compact_department(items: Any) -> list[dict[str, Any]]:
         if not isinstance(items, list):
@@ -96,6 +130,7 @@ def compact_for_ai(result: dict[str, Any]) -> dict[str, Any]:
     graph = result.get("requirementGraph") or {}
     document_plan = graph.get("documentPlan") or {}
     department_plan = graph.get("departmentPlan") or {}
+    schedule_plan = graph.get("schedulePlan") or {}
     external = result.get("externalChecks") or {}
     building = (external.get("buildingLedger") or {})
     building_summary = building.get("summary") or {}
@@ -120,6 +155,7 @@ def compact_for_ai(result: dict[str, Any]) -> dict[str, Any]:
             "concept": business.get("concept"),
             "requestedType": business.get("requestedType"),
             "candidateTypes": business.get("candidateTypes"),
+            "candidateRoutes": [compact_route(route) for route in (business.get("candidateRoutes") or [])[:5] if isinstance(route, dict)],
             "liquorSales": business.get("liquorSales"),
             "salesItems": business.get("salesItems"),
             "takeoverOrExistingBusiness": business.get("takeoverOrExistingBusiness"),
@@ -143,10 +179,22 @@ def compact_for_ai(result: dict[str, Any]) -> dict[str, Any]:
             "conditional": doc_labels(document_plan.get("conditional")),
             "later": doc_labels(document_plan.get("later"))[:8],
         },
+        "documentTiming": {
+            "requiredForSubmission": [compact_doc(item) for item in (document_plan.get("requiredForSubmission") or [])[:12] if isinstance(item, dict)],
+            "conditional": [compact_doc(item) for item in (document_plan.get("conditional") or [])[:12] if isinstance(item, dict)],
+            "later": [compact_doc(item) for item in (document_plan.get("later") or [])[:8] if isinstance(item, dict)],
+        },
         "departmentPlan": {
             "primary": department_labels(department_plan.get("primary")),
             "conditional": department_labels(department_plan.get("conditional")),
             "later": department_labels(department_plan.get("later")),
+        },
+        "schedulePlan": {
+            "basis": schedule_plan.get("basis"),
+            "criticalPath": (schedule_plan.get("criticalPath") or [])[:10],
+            "calendarStrategy": schedule_plan.get("calendarStrategy"),
+            "priorityQueue": [compact_schedule_task(item) for item in (schedule_plan.get("priorityQueue") or [])[:12] if isinstance(item, dict)],
+            "notRequired": [compact_schedule_task(item) for item in (schedule_plan.get("notRequired") or [])[:10] if isinstance(item, dict)],
         },
     }
     compact_external = {
@@ -186,19 +234,40 @@ def build_ai_judgement_prompt(result: dict[str, Any]) -> dict[str, Any]:
     return {
         "system": AI_JUDGEMENT_SYSTEM_PROMPT,
         "user": {
-            "task": "허가온 최종 판단 JSON을 생성하라.",
+            "task": "허가온 최종 판단 JSON을 생성하라. 서류 순서는 공식 처리기간, 선행관계, blockerType을 반영한 스케줄 순서로 정렬하라.",
             "schemaVersion": SCHEMA_VERSION,
+            "orderingPolicy": [
+                "Use requirementGraph.schedulePlan.priorityQueue as the primary document ordering signal.",
+                "Never move an item across a different sequenceRank or dependency stage just because it appears earlier in your reasoning.",
+                "Only reorder items that are parallel-safe: same sequenceRank/calendarLane and no unmet dependsOn relationship between them.",
+                "Put long-lead prerequisite documents earlier than final submissions.",
+                "Keep final submissions after their dependsOn documents.",
+                "Keep optional signboard/outdoor permits in parallel tracks when the plan is confirmed.",
+                "Inside the same parallel-safe group, prefer your corrected priority first, then longer official processing duration, then higher local variance.",
+            ],
             "requiredShape": {
                 "schemaVersion": SCHEMA_VERSION,
                 "decisionStatus": "needs_user_input | needs_api_verification | ready_for_final_guidance",
                 "confidence": "low | medium | high",
                 "summary": "한 문장 요약",
                 "intentSummary": {"intent": "string", "scope": "string", "actions": ["string"]},
+                "businessTypeJudgement": {
+                    "displayLabel": "예: 카페·주류 판매",
+                    "businessType": "휴게음식점영업 | 일반음식점영업 | 제과점영업 | 확인 필요",
+                    "confidence": "low | medium | high",
+                    "reasoning": "법령 기준과 입력값을 연결한 한 문장",
+                    "legalBasis": [{"title": "string", "url": "string", "summary": "string"}],
+                },
                 "canSayNow": ["string"],
                 "cannotConfirmYet": ["string"],
                 "questionsToAsk": [{"id": "string", "question": "string", "reason": "string"}],
                 "apiChecks": {"buildingLedger": "string", "pastBusinessLookup": "string", "decisionEngine": "string"},
                 "documentSummary": {"required": ["string"], "conditional": ["string"], "later": ["string"]},
+                "scheduleSummary": {
+                    "priority": [{"documentId": "string", "label": "string", "recommendedStart": "string", "processingTime": "string", "why": "string"}],
+                    "criticalPath": ["string"],
+                    "parallelTracks": ["string"],
+                },
                 "departmentSummary": {"primary": ["string"], "conditional": ["string"]},
                 "finalResponseDraft": "사용자에게 바로 보여줄 한국어 안내 초안",
             },
@@ -224,6 +293,51 @@ QUESTION_LABELS: dict[str, tuple[str, str]] = {
 
 def labels(items: list[dict[str, Any]], key: str = "label") -> list[str]:
     return [str(item.get(key)) for item in items if item.get(key)]
+
+
+def normalize_label(value: Any) -> str:
+    return "".join(ch.lower() for ch in str(value or "") if ch.isalnum())
+
+
+def schedule_duration_units(processing_time: dict[str, Any]) -> int:
+    days = int(processing_time.get("maxBusinessDays") or 0)
+    minutes = int(processing_time.get("maxMinutes") or 0)
+    return days * 1440 + minutes
+
+
+def schedule_rank_maps(schedule_plan: dict[str, Any]) -> tuple[dict[str, tuple[int, int, int, int]], dict[str, tuple[int, int, int, int]]]:
+    by_id: dict[str, tuple[int, int, int, int]] = {}
+    by_label: dict[str, tuple[int, int, int, int]] = {}
+    for index, item in enumerate(schedule_plan.get("priorityQueue") or []):
+        if not isinstance(item, dict):
+            continue
+        rank = int(item.get("sequenceRank") or (index + 1) * 10)
+        duration = schedule_duration_units(item.get("processingTime") or {})
+        priority_score = int(item.get("priorityScore") or 0)
+        value = (rank, -duration, -priority_score, index)
+        document_id = str(item.get("documentId") or "")
+        label = normalize_label(item.get("label"))
+        if document_id:
+            by_id.setdefault(document_id, value)
+        if label:
+            by_label.setdefault(label, value)
+    return by_id, by_label
+
+
+def scheduled_labels(items: list[dict[str, Any]], schedule_plan: dict[str, Any]) -> list[str]:
+    by_id, by_label = schedule_rank_maps(schedule_plan)
+
+    def item_rank(index_item: tuple[int, dict[str, Any]]) -> tuple[int, int, int, int, int]:
+        index, item = index_item
+        document_id = str(item.get("id") or "")
+        label = normalize_label(item.get("label"))
+        rank = by_id.get(document_id) or by_label.get(label)
+        if rank:
+            return (*rank, index)
+        return (9990 + index, 0, 0, index, index)
+
+    ordered_items = [item for _, item in sorted(enumerate(items or []), key=item_rank)]
+    return labels(ordered_items)
 
 
 def graph_missing_questions(result: dict[str, Any]) -> list[dict[str, str]]:
@@ -254,6 +368,86 @@ def status_from_context(result: dict[str, Any]) -> str:
     return "ready_for_final_guidance"
 
 
+def business_type_judgement_from_context(result: dict[str, Any]) -> dict[str, Any]:
+    business = ((result.get("slots") or {}).get("business") or {})
+    concept = str(business.get("concept") or "")
+    liquor_sales = business.get("liquorSales")
+    candidate_routes = [route for route in (business.get("candidateRoutes") or []) if isinstance(route, dict)]
+
+    selected = None
+    if liquor_sales is True:
+        selected = next((route for route in candidate_routes if route.get("businessType") == "일반음식점영업"), None)
+    if selected is None:
+        selected = next((route for route in candidate_routes if route.get("status") == "candidate"), None)
+    if selected is None and candidate_routes:
+        selected = candidate_routes[0]
+
+    business_type = str((selected or {}).get("businessType") or (business.get("candidateTypes") or ["확인 필요"])[0])
+    cafe_like = concept == "cafe" or any(item in {"음료", "커피", "디저트", "브런치"} for item in business.get("salesItems") or [])
+    if liquor_sales is True and cafe_like:
+        display_label = "카페·주류 판매"
+        business_type = "일반음식점영업"
+        reasoning = "카페 맥락이더라도 주류 판매 계획이 있어, 음주행위가 허용되는 일반음식점영업으로 판단합니다."
+    elif business_type == "휴게음식점영업":
+        display_label = "카페" if cafe_like else "휴게음식점"
+        reasoning = "주류 판매 계획이 확인되지 않았거나 없고, 카페/음료 판매 맥락이어서 휴게음식점영업 후보로 판단합니다."
+    elif business_type == "일반음식점영업":
+        display_label = "음식점"
+        reasoning = "음식류 조리ㆍ판매 또는 주류 판매 가능성을 고려해 일반음식점영업으로 판단합니다."
+    elif business_type == "제과점영업":
+        display_label = "제과/디저트"
+        reasoning = "빵ㆍ과자류 제조ㆍ판매 맥락을 고려해 제과점영업으로 판단합니다."
+    else:
+        display_label = "확인 필요"
+        reasoning = "업종 판단에 필요한 정보가 부족합니다."
+
+    legal_basis_by_title: dict[str, dict[str, Any]] = {}
+    for route in candidate_routes:
+        for ref in route.get("sourceReferences") or []:
+            if isinstance(ref, dict) and ref.get("title"):
+                legal_basis_by_title[str(ref["title"])] = {
+                    "title": ref.get("title"),
+                    "url": ref.get("url"),
+                    "summary": ref.get("summary"),
+                }
+    if not legal_basis_by_title:
+        legal_basis_by_title["식품위생법 시행령 제21조 제8호"] = {
+            "title": "식품위생법 시행령 제21조 제8호",
+            "url": "https://www.law.go.kr/LSW/lsLawLinkInfo.do?chrClsCd=010202&lsId=004097&lsJoLnkSeq=900232309&print=print",
+            "summary": "휴게음식점영업은 음주행위가 허용되지 않고, 일반음식점영업은 식사와 함께 부수적으로 음주행위가 허용됩니다.",
+        }
+
+    return {
+        "displayLabel": display_label,
+        "businessType": business_type,
+        "confidence": "high" if liquor_sales is not None and business_type != "확인 필요" else "medium",
+        "reasoning": reasoning,
+        "legalBasis": list(legal_basis_by_title.values())[:3],
+    }
+
+
+def normalize_business_type_judgement(result: dict[str, Any], judgement: dict[str, Any]) -> dict[str, Any]:
+    normalized = {**judgement}
+    fallback = business_type_judgement_from_context(result)
+    current = normalized.get("businessTypeJudgement")
+    if not isinstance(current, dict):
+        normalized["businessTypeJudgement"] = fallback
+        return normalized
+
+    merged = {**fallback, **current}
+    business = ((result.get("slots") or {}).get("business") or {})
+    cafe_like = business.get("concept") == "cafe" or any(item in {"음료", "커피", "디저트", "브런치"} for item in business.get("salesItems") or [])
+    if business.get("liquorSales") is True and cafe_like:
+        merged["displayLabel"] = "카페·주류 판매"
+        merged["businessType"] = "일반음식점영업"
+        merged["confidence"] = "high"
+        merged["reasoning"] = "카페 맥락이더라도 주류 판매 계획이 있어, 식품위생법 시행령 제21조 제8호 기준상 일반음식점영업으로 판단합니다."
+    if not merged.get("legalBasis"):
+        merged["legalBasis"] = fallback.get("legalBasis") or []
+    normalized["businessTypeJudgement"] = merged
+    return normalized
+
+
 def rule_based_ai_judgement(result: dict[str, Any]) -> dict[str, Any]:
     graph = result.get("requirementGraph", {})
     document_plan = graph.get("documentPlan", {})
@@ -264,11 +458,26 @@ def rule_based_ai_judgement(result: dict[str, Any]) -> dict[str, Any]:
     current_state = result.get("currentState", {})
     decision = result.get("decisionEngine") or {}
     external = result.get("externalChecks") or {}
-    required_docs = labels(document_plan.get("requiredForSubmission", []))
-    conditional_docs = labels(document_plan.get("conditional", []))
-    later_docs = labels(document_plan.get("later", []))
+    schedule_plan = graph.get("schedulePlan") or {}
+    required_docs = scheduled_labels(document_plan.get("requiredForSubmission", []), schedule_plan)
+    conditional_docs = scheduled_labels(document_plan.get("conditional", []), schedule_plan)
+    later_docs = scheduled_labels(document_plan.get("later", []), schedule_plan)
     primary_departments = labels(department_plan.get("primary", []))
     conditional_departments = labels(department_plan.get("conditional", []))
+    schedule_priority = []
+    for item in (schedule_plan.get("priorityQueue") or [])[:6]:
+        if not isinstance(item, dict):
+            continue
+        processing = item.get("processingTime") or {}
+        schedule_priority.append(
+            {
+                "documentId": item.get("documentId"),
+                "label": item.get("label"),
+                "recommendedStart": item.get("recommendedStart"),
+                "processingTime": processing.get("display"),
+                "why": processing.get("blockerType"),
+            }
+        )
 
     if status == "needs_user_input":
         summary = "현재 입력만으로 1차 분류와 서류 후보는 만들 수 있지만, 최종 안내를 위해 추가 정보가 필요합니다."
@@ -287,6 +496,15 @@ def rule_based_ai_judgement(result: dict[str, Any]) -> dict[str, Any]:
         response_lines.append("조건부 서류: " + ", ".join(conditional_docs))
     if primary_departments:
         response_lines.append("문의 부서: " + ", ".join(primary_departments))
+    if schedule_priority:
+        response_lines.append(
+            "Schedule priority: "
+            + ", ".join(
+                str(item.get("label") or "")
+                for item in schedule_priority
+                if item.get("label")
+            )
+        )
     if questions:
         response_lines.append("추가로 필요한 정보: " + ", ".join(question["id"] for question in questions))
 
@@ -300,6 +518,7 @@ def rule_based_ai_judgement(result: dict[str, Any]) -> dict[str, Any]:
             "scope": graph.get("scope"),
             "actions": [item.get("id") for item in actions],
         },
+        "businessTypeJudgement": business_type_judgement_from_context(result),
         "canSayNow": current_state.get("possibleNow", []),
         "cannotConfirmYet": current_state.get("blockedOrUncertain", []),
         "questionsToAsk": questions,
@@ -316,6 +535,11 @@ def rule_based_ai_judgement(result: dict[str, Any]) -> dict[str, Any]:
         "departmentSummary": {
             "primary": primary_departments,
             "conditional": conditional_departments,
+        },
+        "scheduleSummary": {
+            "priority": schedule_priority,
+            "criticalPath": (schedule_plan.get("criticalPath") or [])[:10],
+            "parallelTracks": list((schedule_plan.get("parallelTracks") or {}).keys()),
         },
         "finalResponseDraft": "\n".join(response_lines),
     }
@@ -401,6 +625,7 @@ def run_ai_judgement(
             raise
         meta.update({"provider": "rule", "fallbackUsed": True, "fallbackReason": f"{type(exc).__name__}: {exc}"})
         judgement = rule_based_ai_judgement(result)
+    judgement = normalize_business_type_judgement(result, judgement)
 
     return {
         "status": "ok",

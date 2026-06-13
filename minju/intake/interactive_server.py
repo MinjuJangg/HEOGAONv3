@@ -115,6 +115,7 @@ def compact_result(result: dict[str, Any]) -> dict[str, Any]:
             "conditionalDocs": document_plan.get("conditional", []),
             "laterDocs": document_plan.get("later", []),
             "departments": graph.get("departmentPlan", {}),
+            "schedulePlan": graph.get("schedulePlan", {}),
         },
         "judgement": judgement.get("judgement", {}),
         "inquiry": {

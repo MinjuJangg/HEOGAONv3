@@ -45,13 +45,13 @@ DOCUMENT_TASK_KEYS: dict[str, list[str]] = {
 
 
 DOCUMENT_SEARCH_TERMS: dict[str, str] = {
-    "food_business_report": "영업 신고서",
-    "hygiene_training": "위생교육",
+    "food_business_report": "식품 영업 신고서",
+    "hygiene_training": "위생교육 수료증",
     "health_certificate": "건강진단결과서",
-    "lease_contract": "임대차계약서",
+    "lease_contract": "임대차계약서 또는 시설사용계약서",
     "id_card": "신분증",
-    "fire_safety_certificate": "소방완비",
-    "business_registration": "사업자등록",
+    "fire_safety_certificate": "안전시설등 완비증명서",
+    "business_registration": "사업자등록증",
     "signboard_application": "옥외광고물",
     "signboard_owner_consent": "사용 승낙서",
     "signboard_photo_design": "간판",
@@ -59,6 +59,47 @@ DOCUMENT_SEARCH_TERMS: dict[str, str] = {
     "outdoor_owner_consent": "사용 승낙서",
     "building_ledger_result": "건축물대장",
     "same_place_history_result": "행정처분",
+}
+
+
+DOCUMENT_ACTION_LINKS: dict[str, dict[str, str]] = {
+    "food_business_report": {
+        "sourceTitle": "정부24 식품관련영업신고",
+        "sourceUrl": "https://www.gov.kr/mw/AA020InfoCappView.do?CappBizCD=14600000021&HighCtgCD=A09006&tp_seq=02",
+    },
+    "hygiene_training": {
+        "sourceTitle": "한국외식업중앙회 위생교육",
+        "sourceUrl": "https://www.ifoodedu.or.kr/",
+    },
+    "health_certificate": {
+        "sourceTitle": "정부24 건강진단결과서(보건증) 발급",
+        "sourceUrl": "https://www.gov.kr/portal/service/serviceInfo/135200000129",
+    },
+    "business_registration": {
+        "sourceTitle": "국세청 홈택스",
+        "sourceUrl": "https://www.hometax.go.kr",
+    },
+    "building_ledger_result": {
+        "sourceTitle": "정부24 건축물대장 발급",
+        "sourceUrl": "https://www.gov.kr/mw/AA020InfoCappView.do?CappBizCD=15000000098",
+    },
+    "signboard_application": {
+        "sourceTitle": "정부24 옥외광고물 표시허가(신고)",
+        "sourceUrl": "https://www.gov.kr/mw/AA020InfoCappView.do?CappBizCD=13100000152&HighCtgCD=A09006",
+    },
+    "outdoor_space_materials": {
+        "sourceTitle": "정부24 도로점용허가",
+        "sourceUrl": "https://www.gov.kr/mw/AA020InfoCappView.do?CappBizCD=15000000209&HighCtgCD=A09006",
+    },
+}
+
+
+USER_PREPARED_DOCUMENT_IDS = {
+    "lease_contract",
+    "id_card",
+    "signboard_owner_consent",
+    "signboard_photo_design",
+    "outdoor_owner_consent",
 }
 
 
@@ -216,10 +257,26 @@ def fetch_document_guide(term: str, district: str) -> dict[str, Any] | None:
             SELECT *
             FROM all_document_issue_guide
             WHERE document_name LIKE ?
-            ORDER BY graph_requirement_count DESC, document_name
+            ORDER BY
+                CASE
+                    WHEN document_name = ? THEN 0
+                    WHEN document_name LIKE ? THEN 1
+                    WHEN ? LIKE '%' || document_name || '%' THEN 2
+                    ELSE 3
+                END,
+                CAST(graph_requirement_count AS INTEGER) DESC,
+                CASE
+                    WHEN source_url LIKE '%gov.kr%' THEN 0
+                    WHEN source_url LIKE '%hometax.go.kr%' THEN 1
+                    WHEN source_url LIKE '%law.go.kr/DRF%' THEN 4
+                    WHEN source_url LIKE '%easylaw.go.kr%' THEN 3
+                    ELSE 2
+                END,
+                length(document_name),
+                document_name
             LIMIT 1
             """,
-            (f"%{term}%",),
+            (f"%{term}%", term, f"{term}%", term),
         ).fetchone()
     finally:
         conn.close()
@@ -235,6 +292,7 @@ def build_document_guides(result: dict[str, Any], district: str) -> list[dict[st
     for doc in all_document_items(result):
         term = DOCUMENT_SEARCH_TERMS.get(doc.get("id") or "", doc.get("label") or "")
         guide = fetch_document_guide(term, district)
+        action_link = document_action_link(doc.get("id") or "", guide)
         guides.append(
             {
                 "documentId": doc.get("id"),
@@ -248,11 +306,28 @@ def build_document_guides(result: dict[str, Any], district: str) -> list[dict[st
                 "submitTo": (guide or {}).get("submit_to", ""),
                 "whenNeeded": (guide or {}).get("when_needed", ""),
                 "prerequisiteSummary": (guide or {}).get("prerequisite_summary", ""),
-                "sourceUrl": (guide or {}).get("source_url", ""),
-                "sourceTitle": (guide or {}).get("source_title", ""),
+                "sourceUrl": action_link.get("sourceUrl", ""),
+                "sourceTitle": action_link.get("sourceTitle", ""),
+                "evidenceSourceUrl": (guide or {}).get("source_url", ""),
+                "evidenceSourceTitle": (guide or {}).get("source_title", ""),
             }
         )
     return guides
+
+
+def document_action_link(document_id: str, guide: dict[str, Any] | None) -> dict[str, str]:
+    if document_id in USER_PREPARED_DOCUMENT_IDS:
+        return {"sourceUrl": "", "sourceTitle": ""}
+    explicit = DOCUMENT_ACTION_LINKS.get(document_id)
+    if explicit:
+        return explicit
+    url = str((guide or {}).get("source_url") or "")
+    if "gov.kr" in url or "hometax.go.kr" in url:
+        return {
+            "sourceUrl": url,
+            "sourceTitle": str((guide or {}).get("source_title") or "공식 신청/발급 안내"),
+        }
+    return {"sourceUrl": "", "sourceTitle": ""}
 
 
 def build_check_items(result: dict[str, Any]) -> list[dict[str, Any]]:

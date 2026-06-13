@@ -5,39 +5,75 @@ from typing import Any
 
 from app.data.catalog import DOCUMENT_PRIORITY_RULES
 from app.data.document_metadata import document_metadata_for
-from app.services.document_directory import lookup_document_directory, split_summary, unique_links
+from app.services.document_directory import lookup_document_directory, lookup_processing_time, split_summary, unique_links
 from app.services.document_writing_guide import build_writing_guide
 from app.services.graph_rag_service import GraphRagService, graph_rag_service
 from app.services.slot_utils import as_list, slot_value
 
 
-# 서류별 정식 발급처 링크 오버라이드.
-# DB(source_url)에는 법령 근거(easylaw 등) 링크가 섞여 있어, 실제 신청/발급
-# 포털로 덮어쓴다. tokens 중 하나라도 제목에 포함되면 적용한다.
-# - url/label: 발급처 링크와 표시 텍스트
-# - note(선택): 랜딩 페이지에서 추가 조작이 필요할 때 보여줄 안내 문구
-# 정부24에서 발급/신청 가능한 서류는 해당 민원의 정부24 딥링크로 연결한다.
-ISSUER_LINK_OVERRIDES: list[dict[str, Any]] = [
+EVIDENCE_LINK_MARKERS = ("easylaw.go.kr", "law.go.kr")
+EXCLUDED_DOCUMENT_TITLE_TOKENS: tuple[str, ...] = ()
+EXCLUDED_PREREQUISITE_TOKENS = ("신분증", "주민등록증", "운전면허증", "여권")
+FOOD_BUSINESS_REPORT_ATTACHMENT_CHECKLIST = [
     {
-        "tokens": ("위생교육",),
-        "url": "https://www.foodservice.or.kr/",
-        "label": "위생교육신청 바로가기",
-        "note": "페이지에서 '위생교육 수료증 발급' 메뉴를 찾아 클릭하면 돼요.",
+        "title": "교육이수증 1부",
+        "condition": "식품위생법 제41조제2항에 따라 미리 교육을 받은 경우",
     },
     {
-        "tokens": ("건강진단",),
-        "url": "https://www.gov.kr/portal/service/serviceInfo/135200000129",
-        "label": "정부24 건강진단결과서 발급",
+        "title": "제조·가공하려는 식품의 유형 및 제조방법 설명서 1부",
+        "condition": "식품위생법 시행령 제21조제2호 영업만 해당",
     },
     {
-        "tokens": ("영업신고",),
-        "url": "https://www.gov.kr/mw/AA020InfoCappView.do?CappBizCD=14600000021&HighCtgCD=A09006&tp_seq=02",
-        "label": "정부24 식품영업신고",
+        "title": "시설사용계약서 1부",
+        "condition": "식품운반업에서 차고 또는 세차장을 임대하는 경우",
     },
     {
-        "tokens": ("옥외광고",),
-        "url": "https://www.gov.kr/mw/AA020InfoCappView.do?CappBizCD=13100000152&HighCtgCD=A09006",
-        "label": "정부24 옥외광고물 신고",
+        "title": "먹는물 수질검사기관의 수질검사(시험)성적서 1부",
+        "condition": "수돗물이 아닌 지하수 등을 먹는 물, 조리, 세척 등에 사용하는 경우",
+    },
+    {
+        "title": "유선 또는 도선사업 면허증 또는 신고필증 1부",
+        "condition": "수상구조물에서 휴게음식점영업, 일반음식점영업, 제과점영업을 하는 경우",
+    },
+    {
+        "title": "식품자동판매기의 종류 및 설치장소가 적힌 서류 1부",
+        "condition": "2대 이상의 식품자동판매기를 설치하고 일련관리번호로 일괄 신고하는 경우",
+    },
+    {
+        "title": "수상레저사업 등록증 1부",
+        "condition": "수상레저사업장에서 휴게음식점영업, 일반음식점영업, 제과점영업을 하는 경우",
+    },
+    {
+        "title": "국유재산 사용허가서 1부",
+        "condition": "국유철도 정거장시설 또는 군사시설에서 해당 영업을 하는 경우",
+    },
+    {
+        "title": "도시철도시설 사용계약 서류 1부",
+        "condition": "도시철도 정거장시설에서 해당 영업을 하는 경우",
+    },
+    {
+        "title": "예비군식당 운영계약 서류 1부",
+        "condition": "군사시설에서 예비군식당 운영계약에 따라 일반음식점영업을 하는 경우",
+    },
+    {
+        "title": "영업장과 연접하는 외부 장소 사용권 증빙 1부",
+        "condition": "영업장 외부 장소를 영업장으로 함께 사용하려는 경우",
+    },
+    {
+        "title": "이동용 음식판매 자동차·화물차 관련 서류 1부",
+        "condition": "음식판매자동차 또는 소형·경형화물자동차로 영업하는 경우",
+    },
+    {
+        "title": "어린이놀이시설 설치검사합격증 또는 정기시설검사합격증",
+        "condition": "영업장에 어린이놀이시설을 설치하는 경우",
+    },
+    {
+        "title": "공유주방 소재지, 면적 등 사용계약 서류 1부",
+        "condition": "공유주방 운영업자의 공유주방을 사용하는 경우",
+    },
+    {
+        "title": "마리나선박 대여업 등록증 1부",
+        "condition": "마리나선박에서 해당 영업을 하는 경우",
     },
 ]
 
@@ -68,7 +104,7 @@ class DocumentService:
             selected.append(self.document_from_rule("fire-safety", "needs_check"))
         if "lpg_use" in conditions:
             selected.append(self.document_from_rule("lpg-certificate", "needs_check"))
-        if "signage_planned" in conditions:
+        if self.has_signage_signal(case):
             selected.append(self.document_from_rule("signage-report", "needs_check"))
 
         return self.enrich_documents(case, sorted(selected, key=lambda item: item["priority"]))
@@ -76,6 +112,7 @@ class DocumentService:
     def enrich_documents(self, case: dict[str, Any], documents: list[dict[str, Any]]) -> list[dict[str, Any]]:
         documents = self.documents_for_scope(case, documents)
         documents = self.filter_irrelevant_optional_documents(case, documents)
+        documents = self.filter_excluded_documents(documents)
         graph_documents = self.graph_rag.build_documents(case) or []
         enriched: list[dict[str, Any]] = []
         for document in documents:
@@ -83,7 +120,20 @@ class DocumentService:
             graph_match = self.find_matching_document(graph_documents, title)
             merged = {**document, "title": title}
             if graph_match:
-                for key in ("prerequisites", "unlocks", "officialLinks", "prepareInfo", "steps", "evidence"):
+                for key in (
+                    "prerequisites",
+                    "unlocks",
+                    "officialLinks",
+                    "prepareInfo",
+                    "steps",
+                    "evidence",
+                    "processingTime",
+                    "dependsOn",
+                    "recommendedStart",
+                    "calendarLane",
+                    "sequenceRank",
+                    "priorityScore",
+                ):
                     if graph_match.get(key) and not merged.get(key):
                         merged[key] = graph_match[key]
                 if graph_match.get("prerequisites"):
@@ -91,7 +141,7 @@ class DocumentService:
             enriched.append(self.apply_document_metadata(case, merged))
         for index, document in enumerate(enriched, start=1):
             document["priority"] = index
-        return self.assign_preparation_tracks(enriched)
+        return self.assign_document_dependencies(self.assign_preparation_tracks(enriched))
 
     @staticmethod
     def apply_document_metadata(case: dict[str, Any], document: dict[str, Any]) -> dict[str, Any]:
@@ -108,44 +158,155 @@ class DocumentService:
         merged["issueChannel"] = directory.get("issueChannel") or ""
         merged["issuerUrl"] = directory.get("issuerUrl") or ""
         merged["issuerLinkLabel"] = directory.get("issuerLinkLabel") or ""
-        merged["issuerNote"] = ""
-        override_key = DocumentService.normalized_title(title)
-        for override in ISSUER_LINK_OVERRIDES:
-            if any(DocumentService.normalized_title(token) in override_key for token in override["tokens"]):
-                merged["issuerUrl"] = override["url"]
-                merged["issuerLinkLabel"] = override["label"]
-                merged["issuerNote"] = override.get("note") or ""
-                break
         merged["submitUrl"] = directory.get("submitUrl") or ""
         merged["submitLinkLabel"] = directory.get("submitLinkLabel") or ""
+        processing_time = DocumentService.processing_time_for(merged, directory)
+        if processing_time:
+            merged["processingTime"] = processing_time
+            merged["processingProfileId"] = processing_time.get("profileId") or ""
+            display = str(processing_time.get("display") or "").strip()
+            if display and processing_time.get("profileId") != "not_found":
+                merged["perceivedDuration"] = display
+                if not merged.get("statutoryDeadline") or merged.get("statutoryDeadline") == "확인 필요":
+                    merged["statutoryDeadline"] = display
+            merged["scheduleBlockerType"] = processing_time.get("blockerType") or ""
+            merged["schedulePriorityRank"] = processing_time.get("schedulePriorityRank") or 90
 
         blockers: list[str] = []
         for raw_item in metadata.get("blockingPrerequisites") or []:
             item = DocumentService.display_title(str(raw_item))
-            if item and item not in blockers:
+            if item and not DocumentService.is_excluded_prerequisite(item) and item not in blockers:
                 blockers.append(item)
-        for raw_item in split_summary(str(directory.get("prerequisiteSummary") or "")):
-            item = DocumentService.display_title(str(raw_item))
-            if item and item not in blockers:
-                blockers.append(item)
+        if not (DocumentService.is_food_business_report_title(title) and blockers):
+            for raw_item in split_summary(str(directory.get("prerequisiteSummary") or "")):
+                item = DocumentService.display_title(str(raw_item))
+                if item and not DocumentService.is_excluded_prerequisite(item) and item not in blockers:
+                    blockers.append(item)
         merged["blockingPrerequisites"] = blockers
-        merged["dependencyNote"] = metadata.get("dependencyNote") or directory.get("prerequisiteSummary") or ""
+        merged["dependencyNote"] = ""
 
         if merged["blockingPrerequisites"]:
             merged["prerequisites"] = ", ".join(merged["blockingPrerequisites"])
             merged["prepareInfo"] = merged["blockingPrerequisites"]
-        if merged["dependencyNote"]:
-            merged["unlocks"] = merged["dependencyNote"]
+        merged["prepareInfo"] = DocumentService.clean_prepare_info(merged.get("prepareInfo") or [])
+        if not merged["prepareInfo"]:
+            merged["prepareInfo"] = merged["blockingPrerequisites"]
+        if DocumentService.is_food_business_report_title(title):
+            merged["conditionalAttachments"] = DocumentService.merge_conditional_attachments(
+                merged.get("conditionalAttachments") or [],
+                FOOD_BUSINESS_REPORT_ATTACHMENT_CHECKLIST,
+            )
 
-        merged["officialLinks"] = unique_links([
+        merged["officialLinks"] = DocumentService.links_for_display([
             *(merged.get("officialLinks") or []),
             *(directory.get("officialLinks") or []),
         ]) or [{"label": "정부24에서 확인", "url": "https://www.gov.kr"}]
-
         writing_guide = build_writing_guide(case, title)
         if writing_guide:
             merged["writingGuide"] = writing_guide
         return merged
+
+    @classmethod
+    def filter_excluded_documents(cls, documents: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        return [
+            document
+            for document in documents
+            if not cls.is_excluded_document_title(str(document.get("title") or ""))
+        ]
+
+    @classmethod
+    def is_excluded_document_title(cls, title: str) -> bool:
+        normalized = cls.normalized_title(title)
+        return any(cls.normalized_title(token) in normalized for token in EXCLUDED_DOCUMENT_TITLE_TOKENS)
+
+    @classmethod
+    def is_excluded_prerequisite(cls, value: str) -> bool:
+        normalized = cls.normalized_title(value)
+        return any(cls.normalized_title(token) in normalized for token in EXCLUDED_PREREQUISITE_TOKENS)
+
+    @classmethod
+    def clean_prepare_info(cls, values: list[Any]) -> list[str]:
+        cleaned: list[str] = []
+        for value in values:
+            item = cls.display_title(str(value or ""))
+            if not item or cls.is_excluded_prerequisite(item) or item in cleaned:
+                continue
+            cleaned.append(item)
+        return cleaned
+
+    @classmethod
+    def is_food_business_report_title(cls, title: str) -> bool:
+        normalized = cls.normalized_title(title)
+        if not normalized:
+            return False
+        return any(
+            token in normalized
+            for token in (
+                "식품영업신고서",
+                "식품관련영업신고",
+                "식품영업신고",
+            )
+        ) or normalized == "영업신고서"
+
+    @classmethod
+    def merge_conditional_attachments(
+        cls,
+        existing_items: list[Any],
+        checklist_items: list[dict[str, str]],
+    ) -> list[dict[str, str]]:
+        merged: list[dict[str, str]] = []
+        seen: set[str] = set()
+
+        def append_item(title: str, condition: str = "") -> None:
+            display_title = cls.display_title(title)
+            key = cls.normalized_title(display_title)
+            if not display_title or not key or key in seen:
+                return
+            seen.add(key)
+            item = {"title": display_title}
+            if condition:
+                item["condition"] = condition.strip()
+            merged.append(item)
+
+        for item in existing_items:
+            if isinstance(item, dict):
+                append_item(str(item.get("title") or item.get("label") or ""), str(item.get("condition") or item.get("note") or ""))
+            else:
+                append_item(str(item or ""))
+        for item in checklist_items:
+            append_item(item.get("title") or "", item.get("condition") or "")
+        return merged
+
+    @staticmethod
+    def links_for_display(links: list[dict[str, str]]) -> list[dict[str, str]]:
+        deduped = unique_links(links)
+        primary = [link for link in deduped if not DocumentService.is_evidence_only_link(link)]
+        specific_primary = [link for link in primary if not DocumentService.is_generic_gov24_link(link)]
+        if specific_primary:
+            primary = specific_primary
+        return (primary or deduped)[:4]
+
+    @staticmethod
+    def is_evidence_only_link(link: dict[str, str]) -> bool:
+        url = str(link.get("url") or "")
+        return any(marker in url for marker in EVIDENCE_LINK_MARKERS)
+
+    @staticmethod
+    def is_generic_gov24_link(link: dict[str, str]) -> bool:
+        return str(link.get("url") or "").rstrip("/") == "https://www.gov.kr" and "정부24" in str(link.get("label") or "")
+
+    @staticmethod
+    def processing_time_for(document: dict[str, Any], directory: dict[str, Any]) -> dict[str, Any]:
+        processing_time = document.get("processingTime") if isinstance(document.get("processingTime"), dict) else {}
+        if processing_time and processing_time.get("display") and processing_time.get("profileId") != "not_found":
+            return processing_time
+        directory_processing = directory.get("processingTime") if isinstance(directory.get("processingTime"), dict) else {}
+        if directory_processing and directory_processing.get("display") and directory_processing.get("profileId") != "not_found":
+            return directory_processing
+        id_processing = lookup_processing_time(str(document.get("title") or ""), str(document.get("id") or ""))
+        if id_processing.get("profileId") != "not_found":
+            return id_processing
+        return processing_time or directory_processing or id_processing
 
     @classmethod
     def find_matching_document(cls, documents: list[dict[str, Any]], title: str) -> dict[str, Any] | None:
@@ -186,7 +347,7 @@ class DocumentService:
     def preparation_track_for(cls, title: str, priority: int) -> dict[str, Any]:
         normalized = cls.normalized_title(title)
         if any(token in normalized for token in ["사업자등록"]):
-            return cls.track("after-registration", "후속 등록", "영업신고증을 받은 뒤 진행해요.", 3, "이후 등록")
+            return cls.track("after-registration", "사업자등록", "영업신고증 발급 후 진행해요.", 3, "영업신고 후")
         if any(token in normalized for token in ["지위승계", "승계신고"]):
             return cls.track("food-report", "승계 신고", "기존 영업신고 정보를 새 영업자 기준으로 넘겨요.", 2, "영업신고")
         if any(token in normalized for token in ["영업신고서", "영업신고증", "식품접객업", "식품영업신고"]):
@@ -194,13 +355,13 @@ class DocumentService:
         if any(token in normalized for token in ["간판", "옥외광고", "원색도안", "도로점용", "외부공간", "테이블"]):
             return cls.track("extra-permits", "간판·외부공간", "설치나 외부 사용 전에 별도 신고 여부를 확인해요.", 2, "부가 신고")
         if any(token in normalized for token in ["소방", "안전시설", "완비증명", "액화석유", "가스", "lpg"]):
-            return cls.track("facility-check", "시설 조건", "면적, 층수, 설비 조건에 따라 필요 여부가 갈려요.", 1, "동시 준비")
+            return cls.track("facility-check", "시설 확인", "면적, 층수, 설비 조건에 따라 필요 여부가 갈려요.", 1, "사전 준비")
         if any(token in normalized for token in ["위생교육", "건강진단", "보건증"]):
-            return cls.track("health-hygiene", "보건·위생", "영업신고 전에 미리 준비할 수 있어요.", 1, "동시 준비")
-        if any(token in normalized for token in ["임대차", "사용권한", "사용승낙", "신분증", "건물주", "관리인"]):
-            return cls.track("basic-proof", "기본 증빙", "영업장 사용 권한과 본인 확인 자료를 먼저 정리해요.", 1, "동시 준비")
+            return cls.track("health-hygiene", "위생교육·건강진단", "영업신고 전에 미리 준비해요.", 1, "사전 준비")
+        if any(token in normalized for token in ["임대차", "사용권한", "사용승낙", "건물주", "관리인"]):
+            return cls.track("basic-proof", "사용권한 증빙", "영업장 사용 권한을 먼저 정리해요.", 1, "사전 준비")
         if priority >= 7:
-            return cls.track("after-registration", "후속 등록", "앞 단계가 끝난 뒤 진행해요.", 3, "이후 등록")
+            return cls.track("after-registration", "마무리 등록", "앞 단계가 끝난 뒤 진행해요.", 3, "영업신고 후")
         return cls.track("basic-proof", "기본 증빙", "영업신고 전에 미리 준비할 수 있어요.", 1, "동시 준비")
 
     @staticmethod
@@ -213,34 +374,79 @@ class DocumentService:
             "phaseTitle": phase_title,
         }
 
+    @classmethod
+    def assign_document_dependencies(cls, documents: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        document_ids = {str(document.get("id") or "") for document in documents}
+        document_by_id = {str(document.get("id") or ""): document for document in documents}
+        for document in documents:
+            document_title = str(document.get("title") or "")
+            depends_on: list[str] = []
+            for raw_id in document.get("dependsOn") or []:
+                dependency_id = str(raw_id or "")
+                if dependency_id and dependency_id in document_ids and dependency_id != document.get("id"):
+                    dependency = document_by_id.get(dependency_id) or {}
+                    if cls.should_ignore_dependency(document_title, str(dependency.get("title") or ""), ""):
+                        continue
+                    depends_on.append(dependency_id)
+            for prerequisite in document.get("blockingPrerequisites") or []:
+                match = cls.find_document_by_token(documents, str(prerequisite))
+                dependency_id = str((match or {}).get("id") or "")
+                if dependency_id and dependency_id != document.get("id"):
+                    if cls.should_ignore_dependency(document_title, str((match or {}).get("title") or ""), str(prerequisite)):
+                        continue
+                    depends_on.append(dependency_id)
+            document["dependsOn"] = cls.unique_strings(depends_on)
+        return documents
+
+    @classmethod
+    def should_ignore_dependency(cls, document_title: str, dependency_title: str, prerequisite: str) -> bool:
+        title = cls.normalized_title(document_title)
+        dependency = cls.normalized_title(dependency_title)
+        prerequisite_key = cls.normalized_title(prerequisite)
+        return "임대차" in title and (
+            "사용승낙" in dependency
+            or "건물대지사용" in dependency
+            or "사용승낙" in prerequisite_key
+        )
+
     def build_minju_documents(self, case: dict[str, Any]) -> list[dict[str, Any]]:
         summary = ((case.get("minjuIntake") or {}).get("summary") or {})
         if not summary:
             return []
 
         judgement_docs = ((summary.get("aiJudgement") or {}).get("documentSummary") or {})
-        graph_docs = ((summary.get("requirementGraph") or {}).get("documentPlan") or {})
+        judgement_schedule = ((summary.get("aiJudgement") or {}).get("scheduleSummary") or {})
+        requirement_graph = (summary.get("requirementGraph") or {})
+        graph_docs = (requirement_graph.get("documentPlan") or {})
+        schedule_plan = requirement_graph.get("schedulePlan") or {}
+        schedule_by_id = self.schedule_tasks_by_document_id(schedule_plan)
+        schedule_order = self.schedule_order_maps(schedule_plan, judgement_schedule)
         buckets: list[tuple[str, list[Any]]] = [
-            ("required", self.unique_labels([*(judgement_docs.get("required") or []), *self._labels(graph_docs.get("requiredForSubmission"))])),
-            ("conditional", self.unique_labels([*(judgement_docs.get("conditional") or []), *self._labels(graph_docs.get("conditional"))])),
-            ("later", self.unique_labels([*(judgement_docs.get("later") or []), *self._labels(graph_docs.get("later"))])),
+            ("required", self.sort_items_by_schedule([*(graph_docs.get("requiredForSubmission") or []), *(judgement_docs.get("required") or [])], schedule_order)),
+            ("conditional", self.sort_items_by_schedule([*(graph_docs.get("conditional") or []), *(judgement_docs.get("conditional") or [])], schedule_order)),
+            ("later", self.sort_items_by_schedule([*(graph_docs.get("later") or []), *(judgement_docs.get("later") or [])], schedule_order)),
         ]
 
         documents: list[dict[str, Any]] = []
         seen: set[str] = set()
-        for bucket, labels in buckets:
-            for label in labels or []:
-                title = self.display_title(str(label or ""))
+        for bucket, items in buckets:
+            for item in items or []:
+                title = self.title_from_minju_item(item)
                 seen_key = self.normalized_title(title)
                 if not title or not seen_key or seen_key in seen or self.is_reference_check_title(title):
                     continue
                 seen.add(seen_key)
-                documents.append(self.document_from_minju(title, bucket, len(documents) + 1))
+                documents.append(self.document_from_minju_item(item, bucket, len(documents) + 1, schedule_by_id))
         documents = self.documents_for_scope(case, documents)
         documents = self.filter_irrelevant_optional_documents(case, documents)
-        return self.ensure_full_opening_documents(case, documents)
+        return self.ensure_full_opening_documents(case, documents, schedule_order)
 
-    def ensure_full_opening_documents(self, case: dict[str, Any], documents: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def ensure_full_opening_documents(
+        self,
+        case: dict[str, Any],
+        documents: list[dict[str, Any]],
+        schedule_order: tuple[dict[str, tuple[int, int, int, int, int]], dict[str, tuple[int, int, int, int, int]]] | None = None,
+    ) -> list[dict[str, Any]]:
         if not self.is_full_opening_case(case):
             return documents
 
@@ -251,20 +457,35 @@ class DocumentService:
             ("건강진단결과서", "required", "건강진단"),
             ("소방완비증명서", "conditional", "소방완비"),
             ("식품 영업 신고서", "required", "영업신고서"),
-            ("식품접객업 영업신고증", "required", "영업신고"),
+            ("식품접객업 영업신고증", "required", "영업신고증"),
             ("사업자등록증", "later", "사업자등록"),
         ]
+        optional_index = 5
         if self.has_lpg_signal(case):
-            base_sequence.insert(5, ("액화석유가스 사용시설완성검사증명서", "required", "액화석유"))
+            base_sequence.insert(optional_index, ("액화석유가스 사용시설완성검사증명서", "required", "액화석유"))
+            optional_index += 1
+        if self.has_signage_signal(case):
+            base_sequence.insert(optional_index, ("옥외광고물 표시허가 신청서 또는 신고서", "conditional", "옥외광고"))
+            optional_index += 1
+            base_sequence.insert(optional_index, ("간판 설치 위치 사진, 원색도안, 설계도", "conditional", "원색도안"))
 
         merged: list[dict[str, Any]] = []
+        used_ids: set[str] = set()
         for title, bucket, token in base_sequence:
-            merged.append(self.document_from_minju(title, bucket, len(merged) + 1))
+            existing = self.find_document_by_token(documents, token) or self.find_document_by_token(documents, title)
+            existing_id = str((existing or {}).get("id") or "")
+            if existing and existing_id not in used_ids:
+                merged.append({**existing, "priority": len(merged) + 1})
+                used_ids.add(existing_id)
+            else:
+                merged.append(self.document_from_minju(title, bucket, len(merged) + 1))
 
         for document in documents:
             if not self.is_reference_check_title(document["title"]) and not self.find_document_by_token(merged, document["title"]):
                 merged.append({**document, "priority": len(merged) + 1})
 
+        if schedule_order:
+            merged = self.sort_documents_by_schedule(merged, schedule_order)
         for index, document in enumerate(merged, start=1):
             document["priority"] = index
         return merged
@@ -281,6 +502,202 @@ class DocumentService:
             seen.add(key)
             result.append(title)
         return result
+
+    @classmethod
+    def title_from_minju_item(cls, item: Any) -> str:
+        if isinstance(item, dict):
+            value = item.get("label") or item.get("title") or item.get("name") or item.get("documentName") or item.get("id")
+        else:
+            value = item
+        return cls.display_title(str(value or ""))
+
+    @classmethod
+    def schedule_tasks_by_document_id(cls, schedule_plan: dict[str, Any]) -> dict[str, dict[str, Any]]:
+        by_id: dict[str, dict[str, Any]] = {}
+        for key in ("priorityQueue", "notRequired"):
+            for item in schedule_plan.get(key) or []:
+                if not isinstance(item, dict):
+                    continue
+                document_id = str(item.get("documentId") or "")
+                if document_id:
+                    by_id[document_id] = item
+        return by_id
+
+    @classmethod
+    def schedule_order_maps(
+        cls,
+        schedule_plan: dict[str, Any],
+        judgement_schedule: dict[str, Any],
+    ) -> tuple[dict[str, tuple[int, int, int, int, int]], dict[str, tuple[int, int, int, int, int]]]:
+        by_id: dict[str, tuple[int, int, int, int, int]] = {}
+        by_title: dict[str, tuple[int, int, int, int, int]] = {}
+        gms_by_id: dict[str, int] = {}
+        gms_by_title: dict[str, int] = {}
+
+        for index, item in enumerate(judgement_schedule.get("priority") or []):
+            if not isinstance(item, dict):
+                continue
+            document_id = str(item.get("documentId") or item.get("id") or "").strip()
+            title_key = cls.normalized_title(str(item.get("label") or item.get("title") or ""))
+            if document_id:
+                gms_by_id.setdefault(document_id, index)
+            if title_key:
+                gms_by_title.setdefault(title_key, index)
+
+        def remember(item: dict[str, Any], index: int) -> None:
+            rank = cls._int(item.get("sequenceRank"), (index + 1) * 10)
+            document_id = str(item.get("documentId") or item.get("id") or "").strip()
+            title_key = cls.normalized_title(str(item.get("label") or item.get("title") or ""))
+            gms_index = gms_by_id.get(document_id, gms_by_title.get(title_key, 9990 + index))
+            duration_units = cls.processing_duration_units(item.get("processingTime") or {})
+            priority_score = cls._int(item.get("priorityScore"), 0)
+            value = (rank, gms_index, -duration_units, -priority_score, index)
+            if document_id and document_id not in by_id:
+                by_id[document_id] = value
+            if title_key and title_key not in by_title:
+                by_title[title_key] = value
+
+        for index, item in enumerate(schedule_plan.get("priorityQueue") or []):
+            if isinstance(item, dict):
+                remember(item, index)
+
+        for index, item in enumerate(judgement_schedule.get("priority") or []):
+            if not isinstance(item, dict):
+                continue
+            document_id = str(item.get("documentId") or item.get("id") or "").strip()
+            title_key = cls.normalized_title(str(item.get("label") or item.get("title") or ""))
+            value = (9990, index, 0, 0, 9990 + index)
+            if document_id and document_id not in by_id:
+                by_id[document_id] = value
+            if title_key and title_key not in by_title:
+                by_title[title_key] = value
+        return by_id, by_title
+
+    @classmethod
+    def sort_items_by_schedule(
+        cls,
+        items: list[Any],
+        schedule_order: tuple[dict[str, tuple[int, int, int, int, int]], dict[str, tuple[int, int, int, int, int]]],
+    ) -> list[Any]:
+        return [
+            item
+            for index, item in sorted(
+                enumerate(items or []),
+                key=lambda index_item: cls.schedule_item_key(index_item[1], index_item[0], schedule_order),
+            )
+        ]
+
+    @classmethod
+    def sort_documents_by_schedule(
+        cls,
+        documents: list[dict[str, Any]],
+        schedule_order: tuple[dict[str, tuple[int, int, int, int, int]], dict[str, tuple[int, int, int, int, int]]],
+    ) -> list[dict[str, Any]]:
+        return [
+            document
+            for index, document in sorted(
+                enumerate(documents or []),
+                key=lambda index_document: cls.document_schedule_sort_key(index_document[1], index_document[0], schedule_order),
+            )
+        ]
+
+    @classmethod
+    def document_schedule_sort_key(
+        cls,
+        document: dict[str, Any],
+        fallback_index: int,
+        schedule_order: tuple[dict[str, tuple[int, int, int, int, int]], dict[str, tuple[int, int, int, int, int]]],
+    ) -> tuple[int, int, int, int, int, int, int, int, int]:
+        workflow_rank = cls.workflow_order_rank(str(document.get("title") or ""))
+        return (
+            cls.schedule_stage_rank(document),
+            *cls.schedule_item_key(document, fallback_index, schedule_order),
+            workflow_rank,
+            fallback_index,
+        )
+
+    @classmethod
+    def schedule_stage_rank(cls, document: dict[str, Any]) -> int:
+        normalized = cls.normalized_title(str(document.get("title") or ""))
+        blocker = str(document.get("scheduleBlockerType") or "")
+        if "사업자등록" in normalized or blocker == "after_food_report":
+            return 50
+        if "영업신고증" in normalized or "식품접객업" in normalized:
+            return 40
+        if "영업신고서" in normalized and "영업신고증" not in normalized:
+            return 35
+        if "옥외광고" in normalized or "표시허가" in normalized or "표시신고" in normalized:
+            return 30
+        if bool(document.get("canPrepareBeforeInquiry")) or int(document.get("phase") or 1) <= 1:
+            return 10
+        return 20
+
+    @classmethod
+    def workflow_order_rank(cls, title: str) -> int:
+        normalized = cls.normalized_title(title)
+        if "임대차" in normalized:
+            return 10
+        if "사용승낙" in normalized or "건물대지사용" in normalized:
+            return 20
+        if "건강진단" in normalized or "보건증" in normalized:
+            return 30
+        if "위생교육" in normalized:
+            return 40
+        if any(token in normalized for token in ("소방", "안전시설", "완비증명")):
+            return 50
+        if any(token in normalized for token in ("액화석유", "가스완성검사", "lpg")):
+            return 55
+        if any(token in normalized for token in ("원색도안", "설계도", "위치사진")):
+            return 60
+        if any(token in normalized for token in ("옥외광고", "표시허가", "표시신고")):
+            return 70
+        if "영업신고서" in normalized and "영업신고증" not in normalized:
+            return 80
+        if "영업신고증" in normalized or "식품접객업" in normalized:
+            return 90
+        if "사업자등록" in normalized:
+            return 100
+        return 9990
+
+    @classmethod
+    def schedule_item_key(
+        cls,
+        item: Any,
+        fallback_index: int,
+        schedule_order: tuple[dict[str, tuple[int, int, int, int, int]], dict[str, tuple[int, int, int, int, int]]],
+    ) -> tuple[int, int, int, int, int, int]:
+        by_id, by_title = schedule_order
+        document_id = str((item.get("id") if isinstance(item, dict) else "") or "").strip()
+        if isinstance(item, dict):
+            title = str(item.get("label") or item.get("title") or item.get("name") or item.get("documentName") or "")
+        else:
+            title = str(item or "")
+        title_key = cls.normalized_title(title)
+        rank = by_id.get(document_id) or by_title.get(title_key)
+        if rank:
+            return (*rank, fallback_index)
+        return (9990, 9990 + fallback_index, 0, 0, fallback_index, fallback_index)
+
+    @classmethod
+    def unique_strings(cls, values: list[str]) -> list[str]:
+        result: list[str] = []
+        for value in values:
+            if value and value not in result:
+                result.append(value)
+        return result
+
+    @classmethod
+    def processing_duration_units(cls, processing_time: dict[str, Any]) -> int:
+        days = cls._int(processing_time.get("maxBusinessDays"), 0)
+        minutes = cls._int(processing_time.get("maxMinutes"), 0)
+        return days * 1440 + minutes
+
+    @staticmethod
+    def _int(value: Any, default: int) -> int:
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return default
 
     @staticmethod
     def has_lpg_signal(case: dict[str, Any]) -> bool:
@@ -315,10 +732,9 @@ class DocumentService:
                     ("기존 영업신고증", "required"),
                     ("양도·양수 계약서", "required"),
                     ("임대차계약서", "required"),
-                    ("신분증", "required"),
                     ("사업자등록 정정 또는 신규 등록", "later"),
                 ],
-                include_tokens=["승계", "양도", "양수", "기존 영업신고", "임대차", "신분증", "사업자등록"],
+                include_tokens=["승계", "양도", "양수", "기존 영업신고", "임대차", "사업자등록"],
                 exclude_tokens=["식품 영업 신고서", "위생교육", "건강진단", "소방완비", "옥외광고", "간판", "도로점용", "외부공간"],
             )
         return documents
@@ -332,8 +748,15 @@ class DocumentService:
         exclude_tokens: list[str],
     ) -> list[dict[str, Any]]:
         scoped: list[dict[str, Any]] = []
+        used_ids: set[str] = set()
         for title, bucket in base_sequence:
-            scoped.append(cls.document_from_minju(title, bucket, len(scoped) + 1))
+            existing = cls.find_document_by_token(documents, title)
+            existing_id = str((existing or {}).get("id") or "")
+            if existing and existing_id not in used_ids:
+                scoped.append({**existing, "priority": len(scoped) + 1})
+                used_ids.add(existing_id)
+            else:
+                scoped.append(cls.document_from_minju(title, bucket, len(scoped) + 1))
 
         for document in documents:
             title = str(document.get("title") or "")
@@ -357,11 +780,9 @@ class DocumentService:
         conditions = set(str(item) for item in as_list(slot_value(case, "condition_screening")))
         answered_fields = set(case.get("questionLoop", {}).get("answeredFields") or [])
         user_answered_conditions = "condition_screening" in answered_fields
-        user_answered_signage = "signboard_planned" in answered_fields
-        user_answered_outdoor = "outdoor_space_planned" in answered_fields
-        text = f"{case.get('rawInput') or ''} {slot_value(case, 'business_activity') or ''}"
-        has_signage = cls.has_affirmative_signage(case, text, conditions, user_answered_conditions, user_answered_signage)
-        has_outdoor = cls.has_affirmative_outdoor(case, text, conditions, user_answered_conditions, user_answered_outdoor)
+        text = cls.condition_signal_text(case)
+        has_signage = cls.has_signage_signal(case)
+        has_outdoor = cls.has_outdoor_signal(case)
         has_lpg = (user_answered_conditions and "lpg_use" in conditions) or bool(re.search(r"\bLPG\b|가스", text, re.IGNORECASE))
 
         filtered: list[dict[str, Any]] = []
@@ -381,7 +802,71 @@ class DocumentService:
         return filtered
 
     @staticmethod
+    def condition_signal_text(case: dict[str, Any]) -> str:
+        return f"{case.get('rawInput') or ''} {slot_value(case, 'business_activity') or ''}"
+
+    @classmethod
+    def has_signage_signal(cls, case: dict[str, Any]) -> bool:
+        conditions = set(str(item) for item in as_list(slot_value(case, "condition_screening")))
+        answered_fields = set(case.get("questionLoop", {}).get("answeredFields") or [])
+        return cls.has_affirmative_signage(
+            case,
+            cls.condition_signal_text(case),
+            conditions,
+            "condition_screening" in answered_fields,
+            "signboard_planned" in answered_fields,
+        )
+
+    @classmethod
+    def has_outdoor_signal(cls, case: dict[str, Any]) -> bool:
+        conditions = set(str(item) for item in as_list(slot_value(case, "condition_screening")))
+        answered_fields = set(case.get("questionLoop", {}).get("answeredFields") or [])
+        return cls.has_affirmative_outdoor(
+            case,
+            cls.condition_signal_text(case),
+            conditions,
+            "condition_screening" in answered_fields,
+            "outdoor_space_planned" in answered_fields,
+        )
+
+    @staticmethod
+    def has_negative_signage_signal(text: str) -> bool:
+        return bool(
+            re.search(
+                r"(?:간판|옥외광고|표시허가|표시신고)(?:(?!노상|도로점용|외부|테라스|보도).){0,30}"
+                r"(?:미정|아직|안\s*함|하지\s*않|없|기존\s*것|그대로|설치\s*안|설치하지|미설치|철거)",
+                text,
+            )
+        )
+
+    @staticmethod
+    def has_positive_signage_signal(text: str) -> bool:
+        return bool(
+            re.search(
+                r"(?:간판|옥외광고|표시허가|표시신고)[^.。]{0,35}"
+                r"(?:설치(?!\s*안)|달|부착|신청|신고|허가|예정|할\s*거|할거|남기|진행)",
+                text,
+            )
+        )
+
+    @staticmethod
+    def has_negative_outdoor_signal(text: str) -> bool:
+        outdoor_subject = r"(?:옥외\s*노상|노상|야외|외부\s*공간|외부|가게\s*밖|테이블|테라스|보도|도로점용|도로|대기\s*의자)"
+        return bool(
+            re.search(
+                outdoor_subject
+                + r"[^.。]{0,45}(?:쓰지\s*않|사용하지\s*않|사용\s*안|안\s*씀|안\s*함|하지\s*않|설치\s*안|설치하지|미설치|없|미정)",
+                text,
+            )
+        )
+
+    @staticmethod
+    def has_positive_outdoor_signal(text: str) -> bool:
+        return bool(re.search(r"외부\s*테이블|가게\s*앞\s*테이블|보도\s*점용|도로점용|테라스|야외\s*테이블|노상\s*영업|대기\s*의자", text))
+
+    @classmethod
     def has_affirmative_signage(
+        cls,
         case: dict[str, Any],
         text: str,
         conditions: set[str],
@@ -390,33 +875,38 @@ class DocumentService:
     ) -> bool:
         if user_answered_signage and slot_value(case, "signboard_planned") is True:
             return True
-        if re.search(r"간판[^.。]*(미정|아직|안\s*함|하지\s*않|없|기존\s*것|그대로)", text):
+        if cls.has_positive_signage_signal(text):
+            return True
+        if cls.has_negative_signage_signal(text):
             return False
-        if slot_value(case, "signboard_planned") is False or "none" in conditions:
+        if slot_value(case, "signboard_planned") is False:
             return False
         if slot_value(case, "signboard_planned") is True:
             return True
+        if "none" in conditions:
+            return False
         if re.search(r"간판|옥외광고|표시허가|표시신고", text):
             return True
         return user_answered_conditions and "signage_planned" in conditions and slot_value(case, "signboard_planned") is not False
 
-    @staticmethod
+    @classmethod
     def has_affirmative_outdoor(
+        cls,
         case: dict[str, Any],
         text: str,
         conditions: set[str],
         user_answered_conditions: bool,
         user_answered_outdoor: bool,
     ) -> bool:
-        if user_answered_outdoor and slot_value(case, "outdoor_space_planned") is True:
+        if user_answered_outdoor and slot_value(case, "outdoor_space_planned") is True and not cls.has_negative_outdoor_signal(text):
             return True
-        if re.search(r"(외부|가게\s*밖|테이블|테라스|보도|도로)[^.。]*(쓰지\s*않|사용하지\s*않|없|안\s*씀|미정)", text):
+        if cls.has_negative_outdoor_signal(text):
             return False
         if slot_value(case, "outdoor_space_planned") is False or "none" in conditions:
             return False
         if slot_value(case, "outdoor_space_planned") is True:
             return True
-        if re.search(r"외부\s*테이블|가게\s*앞\s*테이블|보도|도로점용|테라스|대기\s*의자", text):
+        if cls.has_positive_outdoor_signal(text):
             return True
         return user_answered_conditions and "outdoor_space_planned" in conditions and slot_value(case, "outdoor_space_planned") is not False
 
@@ -525,6 +1015,61 @@ class DocumentService:
             "steps": ["발급처 확인", "제출처 확인", "선행서류 확인"],
             "canPrepareBeforeInquiry": bucket != "later",
         }
+
+    @classmethod
+    def document_from_minju_item(
+        cls,
+        item: Any,
+        bucket: str,
+        priority: int,
+        schedule_by_id: dict[str, dict[str, Any]],
+    ) -> dict[str, Any]:
+        title = cls.title_from_minju_item(item)
+        document = cls.document_from_minju(title, bucket, priority)
+        if not isinstance(item, dict):
+            return document
+
+        document_id = str(item.get("id") or "").strip()
+        schedule_task = schedule_by_id.get(document_id, {})
+        if document_id:
+            document["id"] = document_id
+
+        graph_status = str(item.get("status") or schedule_task.get("status") or "").strip()
+        if graph_status:
+            document["graphStatus"] = graph_status
+            document["status"] = cls.status_for_minju_status(graph_status, bucket)
+
+        if item.get("condition"):
+            document["condition"] = item["condition"]
+        if item.get("missingInputs"):
+            document["missingInputs"] = item.get("missingInputs") or []
+        if item.get("stage") or schedule_task.get("stage"):
+            document["stage"] = item.get("stage") or schedule_task.get("stage")
+
+        processing_time = item.get("processingTime") or schedule_task.get("processingTime")
+        if isinstance(processing_time, dict) and processing_time:
+            document["processingTime"] = processing_time
+
+        for key in (
+            "dependsOn",
+            "recommendedStart",
+            "calendarLane",
+            "sequenceRank",
+            "priorityScore",
+        ):
+            if schedule_task.get(key) not in (None, "", []):
+                document[key] = schedule_task[key]
+        return document
+
+    @staticmethod
+    def status_for_minju_status(status: str, bucket: str) -> str:
+        if status in {"needs_input", "conditional_if_planned"}:
+            return "needs_check"
+        if status in {"later", "not_required_by_current_inputs"}:
+            return "blocked"
+        if status in {"required", "reference"}:
+            return "not_started" if bucket != "later" else "blocked"
+        return "not_started" if bucket == "required" else ("needs_check" if bucket == "conditional" else "blocked")
 
     @staticmethod
     def _labels(items: Any) -> list[str]:

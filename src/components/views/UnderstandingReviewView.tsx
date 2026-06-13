@@ -1,9 +1,12 @@
 import { Icon } from "@/components/common/Icon";
 import type { UnderstandingReviewView as UnderstandingReviewViewModel } from "@/types/flow";
 
-export function UnderstandingReviewView({ view }: {
+export function UnderstandingReviewView({ view, onEdit }: {
   view: UnderstandingReviewViewModel;
+  onEdit: () => void;
 }) {
+  const showDecision = Boolean(view.suitabilityTitle || view.suitabilitySummary);
+
   return (
     <>
       <section className="question-card">
@@ -30,17 +33,24 @@ export function UnderstandingReviewView({ view }: {
           )}
         </section>
 
-        <section className="summary-review understanding-decision">
-          <div className="summary-review-title-row">
-            <span aria-hidden="true"><Icon name="search" /></span>
-            <h2 className="summary-review-title">{view.suitabilityTitle || "적합성 판단"}</h2>
-          </div>
-          {view.suitabilitySummary ? <p className="summary-review-subtitle">{view.suitabilitySummary}</p> : null}
-        </section>
+        {showDecision ? (
+          <section className="summary-review understanding-decision">
+            <div className="summary-review-title-row">
+              <span aria-hidden="true"><Icon name="search" /></span>
+              <h2 className="summary-review-title">{view.suitabilityTitle || "적합성 판단"}</h2>
+            </div>
+            {view.suitabilitySummary ? <p className="summary-review-subtitle">{view.suitabilitySummary}</p> : null}
+          </section>
+        ) : null}
 
         {view.apiItems.length ? <ListBlock title="확인된 근거" icon="fileCheck" items={view.apiItems} /> : null}
-        {view.buildingItems.length ? <ListBlock title="건축물대장 요약" icon="building2" items={view.buildingItems} /> : null}
 
+        <div className="understanding-actions">
+          <button className="understanding-edit-button" type="button" onClick={onEdit}>
+            <Icon name="edit" size={18} />
+            <span>{view.editButtonLabel || "아니에요, 수정할게요"}</span>
+          </button>
+        </div>
       </div>
     </>
   );

@@ -16,11 +16,19 @@ export function SlotQuestionView({
   onFreeText: (value: string) => void;
   onUnknown: () => void;
 }) {
+  const prompt = view.prompt && view.prompt !== view.title ? view.prompt : "";
+  const promptDescription = view.promptDescription && view.promptDescription !== view.subtitle ? view.promptDescription : "";
   return (
     <section className="question-card">
       <h1 className="question-title">{view.title}</h1>
       {view.subtitle ? <p className="question-sub">{view.subtitle}</p> : null}
       {view.validationMessage ? <p className="collect-status error-text" role="alert">{view.validationMessage}</p> : null}
+      {prompt ? (
+        <div className="slot-question-prompt">
+          <h2>{prompt}</h2>
+          {promptDescription ? <p>{promptDescription}</p> : null}
+        </div>
+      ) : null}
       {view.inputMode === "free_text" ? (
         <div className="detail-form slot-free-text">
           <div className="detail-box">
@@ -79,6 +87,7 @@ function QuestionOptions({
     <div className="options" role={isMulti ? "group" : "radiogroup"} aria-label="답변 선택">
       {view.options.map((option) => {
         const isUnknown = option.id === "unknown";
+        const optionNumber = optionNumberFor(view.field, option.id);
         return (
           <button
             className={`option${selectedIds.includes(option.id) ? " selected" : ""}${isUnknown ? " option-unknown" : ""}`}
@@ -88,7 +97,9 @@ function QuestionOptions({
             key={option.id}
             onClick={() => toggle(option)}
           >
-            <span className="option-icon" aria-hidden="true"><Icon name={iconForOption(option.id, view.field)} /></span>
+            <span className={`option-icon${optionNumber ? " option-number-icon" : ""}`} aria-hidden="true">
+              {optionNumber || <Icon name={iconForOption(option.id, view.field)} />}
+            </span>
             <span className="option-main">
               <span className="option-title">{option.title}</span>
             </span>
@@ -98,4 +109,14 @@ function QuestionOptions({
       })}
     </div>
   );
+}
+
+function optionNumberFor(field: string, optionId: string) {
+  if (field !== "signboard_type") return "";
+  return {
+    wall: "1",
+    projecting: "2",
+    standing: "3",
+    banner: "4",
+  }[optionId] || "";
 }

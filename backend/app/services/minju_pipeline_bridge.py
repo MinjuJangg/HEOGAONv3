@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 from pathlib import Path
 from typing import Any
 
 from app.core.config import settings
-from app.services.slot_utils import append_condition, as_list, set_slot, slot_value
+from app.services.document_service import document_service
+from app.services.slot_utils import append_condition, as_list, condition_user_text, set_slot, slot_value
 
 
 def _load_build_intake_result():
@@ -193,6 +195,13 @@ class MinjuPipelineBridge:
 
         if facility.get("cookingFire") is True and "manufacturing_or_simple_sale" not in case["slots"]:
             set_slot(case, "manufacturing_or_simple_sale", "cook", "매장 조리", "AI 추출 조리·제조 방식")
+        case_text = f"{case.get('rawInput') or ''} {business_text}"
+        if (
+            "manufacturing_or_simple_sale" not in case["slots"]
+            and re.search(r"카페|커피|음료|디저트|음식점|식당|주점|술|맥주|와인|칵테일", case_text, re.IGNORECASE)
+            and not re.search(r"완제품|기성품|단순\s*판매|소분|조리\s*안|제조\s*안|만들지\s*않", case_text)
+        ):
+            set_slot(case, "manufacturing_or_simple_sale", "cook", "매장 조리·제공", "입력 문장 기준 조리·제조 방식")
         if facility.get("lpgUse") is True:
             append_condition(case, "lpg_use")
         if facility.get("seating") is True and "on_site_consumption" not in case["slots"]:
@@ -220,6 +229,8 @@ class MinjuPipelineBridge:
         if facility.get("outdoorAreaText") and "outdoor_area" not in case["slots"]:
             set_slot(case, "outdoor_area", facility["outdoorAreaText"], facility["outdoorAreaText"], "AI 추출 외부공간 면적")
 
+        MinjuPipelineBridge.apply_condition_signal_overrides(case)
+
         for source, field in [
             ("leaseContract", "lease_contract"),
             ("hygieneTraining", "hygieneTraining"),
@@ -229,6 +240,30 @@ class MinjuPipelineBridge:
             value = documents.get(source)
             if value and value != "unknown" and field not in case["slots"]:
                 set_slot(case, field, value, value, "AI 추출 서류 준비상태")
+
+    @staticmethod
+    def apply_condition_signal_overrides(case: dict[str, Any]) -> None:
+        text = document_service.condition_signal_text(case)
+        conditions = [str(item) for item in as_list(slot_value(case, "condition_screening")) if str(item) != "none"]
+
+        if document_service.has_positive_signage_signal(text):
+            set_slot(case, "signboard_planned", True, "간판 설치 예정", "입력 문장 기준 간판 설치 여부")
+            if "signage_planned" not in conditions:
+                conditions.append("signage_planned")
+        elif document_service.has_negative_signage_signal(text) and "signboard_planned" not in case["slots"]:
+            set_slot(case, "signboard_planned", False, "간판 설치 계획 없음", "입력 문장 기준 간판 설치 여부")
+            conditions = [item for item in conditions if item != "signage_planned"]
+
+        if document_service.has_negative_outdoor_signal(text):
+            set_slot(case, "outdoor_space_planned", False, "외부공간 사용 계획 없음", "입력 문장 기준 외부공간 사용 여부")
+            conditions = [item for item in conditions if item != "outdoor_space_planned"]
+        elif document_service.has_positive_outdoor_signal(text):
+            set_slot(case, "outdoor_space_planned", True, "외부공간 사용 예정", "입력 문장 기준 외부공간 사용 여부")
+            if "outdoor_space_planned" not in conditions:
+                conditions.append("outdoor_space_planned")
+
+        if conditions:
+            set_slot(case, "condition_screening", conditions, condition_user_text(conditions), "추가 조건 스크리닝")
 
     @staticmethod
     def _inject_frontend_building(case: dict[str, Any], result: dict[str, Any]) -> None:
@@ -384,18 +419,21 @@ class MinjuPipelineBridge:
                     "conditional": department_plan.get("conditional") or [],
                     "later": department_plan.get("later") or [],
                 },
+                "schedulePlan": graph.get("schedulePlan") or {},
             },
             "aiJudgement": {
                 "meta": (result.get("aiJudgement") or {}).get("meta") or {},
                 "decisionStatus": judgement.get("decisionStatus"),
                 "confidence": judgement.get("confidence"),
                 "summary": judgement.get("summary"),
+                "businessTypeJudgement": judgement.get("businessTypeJudgement") or {},
                 "canSayNow": judgement.get("canSayNow") or [],
                 "cannotConfirmYet": judgement.get("cannotConfirmYet") or [],
                 "questionsToAsk": judgement.get("questionsToAsk") or [],
                 "apiChecks": judgement.get("apiChecks") or {},
                 "documentSummary": judgement.get("documentSummary") or {},
                 "departmentSummary": judgement.get("departmentSummary") or {},
+                "scheduleSummary": judgement.get("scheduleSummary") or {},
                 "finalResponseDraft": judgement.get("finalResponseDraft") or "",
             },
             "inquiryPackage": {

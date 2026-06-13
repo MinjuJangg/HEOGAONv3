@@ -158,22 +158,11 @@ class QuestionPlanner:
         pending = []
         conditions = set(str(item) for item in as_list(slot_value(case, "condition_screening")))
         answered = set(case.get("questionLoop", {}).get("answeredFields") or [])
-        text = f"{case.get('rawInput') or ''} {slot_value(case, 'business_activity') or ''}"
-        user_answered_conditions = "condition_screening" in answered
-        has_signage = document_service.has_affirmative_signage(
-            case,
-            text,
-            conditions,
-            user_answered_conditions,
-            "signboard_planned" in answered,
-        )
-        has_outdoor = document_service.has_affirmative_outdoor(
-            case,
-            text,
-            conditions,
-            user_answered_conditions,
-            "outdoor_space_planned" in answered,
-        )
+        text = document_service.condition_signal_text(case)
+        has_signage = document_service.has_signage_signal(case)
+        has_outdoor = document_service.has_outdoor_signal(case)
+        signage_known_no = slot_value(case, "signboard_planned") is False or document_service.has_negative_signage_signal(text)
+        outdoor_known_no = slot_value(case, "outdoor_space_planned") is False or document_service.has_negative_outdoor_signal(text)
         signage_detail_fields = {"signboard_type", "signboard_size", "signboard_location", "signboard_image"}
         outdoor_detail_fields = {"outdoor_location", "outdoor_area"}
         for question in questions:
@@ -194,9 +183,9 @@ class QuestionPlanner:
                 continue
             if field == "floor_unit" and QuestionPlanner.floor_unit_known(case):
                 continue
-            if field == "signboard_planned" and "signage_planned" in as_list(slot_value(case, "condition_screening")):
+            if field == "signboard_planned" and (has_signage or signage_known_no or "signage_planned" in conditions):
                 continue
-            if field == "outdoor_space_planned" and "outdoor_space_planned" in as_list(slot_value(case, "condition_screening")):
+            if field == "outdoor_space_planned" and (has_outdoor or outdoor_known_no or "outdoor_space_planned" in conditions):
                 continue
             if field == "condition_screening" and "condition_screening" in case["slots"]:
                 continue
@@ -214,8 +203,17 @@ class QuestionPlanner:
     def floor_unit_known(case: dict[str, Any]) -> bool:
         if slot_value(case, "floor_unit"):
             return True
-        address = str(slot_value(case, "exact_address") or "")
-        return bool(re.search(r"(?:지하\s*)?\d+\s*층|[A-Za-z]?\d{1,5}\s*호", address))
+        candidates = [
+            str(slot_value(case, "exact_address") or ""),
+            str(slot_value(case, "location") or ""),
+            str(case.get("rawInput") or ""),
+        ]
+        for answer in case.get("answers") or []:
+            if isinstance(answer, dict):
+                candidates.extend(str(answer.get(key) or "") for key in ("answer", "text", "value"))
+            else:
+                candidates.append(str(answer or ""))
+        return any(re.search(r"(?:지하\s*)?\d+\s*층|[A-Za-z]?\d{1,5}\s*호", text) for text in candidates if text)
 
     def start_or_finish_question_loop(self, case: dict[str, Any]) -> dict[str, Any]:
         loop = case["questionLoop"]
@@ -277,22 +275,11 @@ class QuestionPlanner:
         answered = set(case["questionLoop"]["answeredFields"])
         filtered: list[str] = []
         conditions = set(str(item) for item in as_list(slot_value(case, "condition_screening")))
-        text = f"{case.get('rawInput') or ''} {slot_value(case, 'business_activity') or ''}"
-        user_answered_conditions = "condition_screening" in answered
-        has_signage = self.documents.has_affirmative_signage(
-            case,
-            text,
-            conditions,
-            user_answered_conditions,
-            "signboard_planned" in answered,
-        )
-        has_outdoor = self.documents.has_affirmative_outdoor(
-            case,
-            text,
-            conditions,
-            user_answered_conditions,
-            "outdoor_space_planned" in answered,
-        )
+        text = self.documents.condition_signal_text(case)
+        has_signage = self.documents.has_signage_signal(case)
+        has_outdoor = self.documents.has_outdoor_signal(case)
+        signage_known_no = slot_value(case, "signboard_planned") is False or self.documents.has_negative_signage_signal(text)
+        outdoor_known_no = slot_value(case, "outdoor_space_planned") is False or self.documents.has_negative_outdoor_signal(text)
         signage_detail_fields = {"signboard_type", "signboard_size", "signboard_location", "signboard_image"}
         outdoor_detail_fields = {"outdoor_location", "outdoor_area"}
         for field in fields:
@@ -310,9 +297,9 @@ class QuestionPlanner:
                 continue
             if field == "floor_unit" and self.floor_unit_known(case):
                 continue
-            if field == "signboard_planned" and "signage_planned" in conditions:
+            if field == "signboard_planned" and (has_signage or signage_known_no or "signage_planned" in conditions):
                 continue
-            if field == "outdoor_space_planned" and "outdoor_space_planned" in conditions:
+            if field == "outdoor_space_planned" and (has_outdoor or outdoor_known_no or "outdoor_space_planned" in conditions):
                 continue
             if field in case["slots"] and slot_value(case, field) not in (None, "", "unknown", []):
                 continue

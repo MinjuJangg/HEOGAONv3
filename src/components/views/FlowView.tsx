@@ -66,7 +66,7 @@ export function FlowView({
   }
 
   if (view.type === "diagnosis") return <DiagnosisView view={view} />;
-  if (view.type === "understanding_review") return <UnderstandingReviewView view={view} />;
+  if (view.type === "understanding_review") return <UnderstandingReviewView view={view} onEdit={() => onAction("edit_understanding")} />;
 
   if (view.type === "documents") {
     return (

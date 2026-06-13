@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from app.data.catalog import FLOW_SCHEMA_VERSION, QUESTION_BANK, unknown_option
@@ -17,8 +18,19 @@ DISPLAY_QUESTION_SKIP_IDS = {
     "health_certificate",
     "fireCertificate",
     "fire_certificate",
-    "signboard_image",
     "building_use",
+}
+
+DETAIL_FOLLOWUP_FIELDS = {
+    "signboard_planned",
+    "signboard_type",
+    "signboard_size",
+    "signboard_location",
+    "signboard_image",
+    "owner_consent",
+    "outdoor_space_planned",
+    "outdoor_location",
+    "outdoor_area",
 }
 
 ADDRESS_QUESTION_IDS = {
@@ -29,6 +41,8 @@ ADDRESS_QUESTION_IDS = {
 }
 
 FLOOR_QUESTION_IDS = {"floor_unit", "floor_or_unit_if_known"}
+FLOOR_OR_UNIT_HINT_RE = re.compile(r"(?:지하\s*)?\d+\s*층|[A-Za-z]?\d{1,5}\s*호")
+FLOOR_FOLLOWUP_TEXT_RE = re.compile(r"몇\s*층|실제로\s*몇\s*층|층수|층\s*/\s*호수|층과\s*호수|호수|호실")
 
 
 class ViewBuilder:
@@ -92,11 +106,16 @@ class ViewBuilder:
     @staticmethod
     def slot_question_view(case: dict[str, Any]) -> dict[str, Any]:
         current = case["questionLoop"].get("current") or {}
+        field = current.get("field")
+        is_detail_followup = bool(field in DETAIL_FOLLOWUP_FIELDS and ViewBuilder.detailed_floor_unit_known(case))
+        show_detail_intro = is_detail_followup and bool(case.get("detailFollowupIntroPending"))
         return {
             "type": "slot_question",
-            "field": current.get("field"),
-            "title": current.get("question") or "확인이 더 필요해요",
-            "subtitle": current.get("why") or "",
+            "field": field,
+            "title": "추가 확인할 정보가 있어요!" if show_detail_intro else current.get("question") or "확인이 더 필요해요",
+            "subtitle": "간판·외부공간 조건에 따라 필요한 서류가 달라질 수 있어요." if show_detail_intro else current.get("why") or "",
+            "prompt": (current.get("question") or "") if show_detail_intro else "",
+            "promptDescription": (current.get("why") or "") if show_detail_intro else "",
             "inputMode": current.get("inputMode") or "free_text",
             "options": current.get("options") or [unknown_option()],
             "validationMessage": current.get("validationMessage") or "",
@@ -131,11 +150,13 @@ class ViewBuilder:
 
     def documents_view(self, case: dict[str, Any]) -> dict[str, Any]:
         next_label = "진행 상황 보기"
+        documents = case["documents"]
         return {
             "type": "documents",
             "title": "필요 서류를 준비해요",
-            "documents": case["documents"],
+            "documents": documents,
             "completedDocumentIds": case["completedDocumentIds"],
+            "durationEstimate": self.duration_estimate(documents),
             "nextButtonLabel": next_label,
         }
 
@@ -148,14 +169,14 @@ class ViewBuilder:
             "items": self.understanding_items(case),
             "apiItems": guidance.get("apiStatusItems") or [],
             "buildingItems": guidance.get("buildingItems") or [],
-            "suitabilityTitle": guidance.get("suitabilityTitle") or "적합성 판단",
-            "suitabilitySummary": guidance.get("suitabilitySummary") or guidance.get("summary") or "",
+            "suitabilityTitle": "",
+            "suitabilitySummary": "",
             "nextButtonLabel": "맞아요, 계속",
-            "editButtonLabel": "수정할래요",
+            "editButtonLabel": "아니에요, 수정할게요",
         }
 
-    @staticmethod
-    def understanding_items(case: dict[str, Any]) -> list[dict[str, str]]:
+    @classmethod
+    def understanding_items(cls, case: dict[str, Any]) -> list[dict[str, str]]:
         fields = [
             "business_activity",
             "exact_address",
@@ -179,9 +200,117 @@ class ViewBuilder:
                 continue
             items.append({
                 "label": label_for_field(field),
-                "value": display_value_for_field(field, value),
+                "value": cls.display_understanding_value(case, field, value),
             })
         return items
+
+    @classmethod
+    def display_understanding_value(cls, case: dict[str, Any], field: str, value: Any) -> str:
+        if field == "business_activity":
+            return cls.display_business_activity(case, value)
+        if field == "exact_address":
+            return cls.display_exact_address(case, value)
+        return display_value_for_field(field, value)
+
+    @staticmethod
+    def display_exact_address(case: dict[str, Any], value: Any) -> str:
+        address = str(value or "").strip()
+        detail = str(slot_value(case, "floor_unit") or "").strip()
+        if not address or not detail:
+            return address
+
+        cleaned = address
+        for token in FLOOR_OR_UNIT_HINT_RE.findall(detail):
+            cleaned = re.sub(rf"\s*{re.escape(token)}\s*$", "", cleaned).strip()
+            cleaned = re.sub(rf"\s*{re.escape(token)}(?=\s|,|$)", " ", cleaned).strip()
+        return re.sub(r"\s{2,}", " ", cleaned).strip(" ,") or address
+
+    @classmethod
+    def display_business_activity(cls, case: dict[str, Any], value: Any) -> str:
+        raw = str(value or "").strip()
+        if not raw:
+            return ""
+
+        ai_display = cls.ai_business_type_display(case)
+        if ai_display:
+            return ai_display
+
+        if "(" in raw and ")" in raw and any(term in raw for term in ("음식점", "제과점")):
+            return raw
+
+        context = " ".join(
+            str(item or "")
+            for item in [
+                raw,
+                case.get("rawInput"),
+                slot_value(case, "business_activity"),
+                slot_value(case, "manufacturing_or_simple_sale"),
+            ]
+        )
+        compact = re.sub(r"\s+", "", context).lower()
+        raw_compact = re.sub(r"\s+", "", raw).lower()
+        liquor_sales = slot_value(case, "liquor_sales") is True
+
+        if "bakery" in compact or "제과" in compact or "베이커" in compact or "빵" in compact:
+            label = "제과/디저트"
+            business_type = "제과점영업"
+        elif "cafe" in compact or "coffee" in compact or "카페" in compact or "커피" in compact or "휴게음식점" in compact:
+            label = "카페·주류 판매" if liquor_sales else ("카페" if any(term in compact for term in ("cafe", "coffee", "카페", "커피")) else "휴게음식점")
+            business_type = "일반음식점영업" if liquor_sales else "휴게음식점영업"
+        elif "restaurant" in compact or "일반음식점" in compact or "식당" in compact or "음식점" in compact:
+            label = "음식점"
+            business_type = "일반음식점영업"
+        else:
+            label = cls.localize_business_label(raw)
+            business_type = cls.infer_business_type_label(case, raw)
+
+        if business_type and business_type not in label:
+            return f"{label}({business_type})"
+        return label
+
+    @staticmethod
+    def ai_business_type_display(case: dict[str, Any]) -> str:
+        for key in ("minjuIntake", "minjuDraft"):
+            judgement = ((((case.get(key) or {}).get("summary") or {}).get("aiJudgement") or {}).get("businessTypeJudgement") or {})
+            if not isinstance(judgement, dict):
+                continue
+            label = str(judgement.get("displayLabel") or "").strip()
+            business_type = str(judgement.get("businessType") or "").strip()
+            if not label or not business_type or business_type == "확인 필요":
+                continue
+            if business_type in label:
+                return label
+            return f"{label}({business_type})"
+        return ""
+
+    @staticmethod
+    def localize_business_label(value: str) -> str:
+        normalized = re.sub(r"\s+", "", value).lower()
+        return {
+            "cafe": "카페",
+            "coffee": "카페",
+            "coffeeshop": "카페",
+            "restaurant": "음식점",
+            "bakery": "제과/디저트",
+        }.get(normalized, value)
+
+    @staticmethod
+    def infer_business_type_label(case: dict[str, Any], value: str) -> str:
+        text = " ".join(
+            str(item or "")
+            for item in [
+                value,
+                case.get("rawInput"),
+                slot_value(case, "business_activity"),
+            ]
+        )
+        if "일반음식점" in text:
+            return "일반음식점영업"
+        if "휴게음식점" in text:
+            return "휴게음식점영업"
+        if "제과점" in text:
+            return "제과점영업"
+        return ""
 
     def submitted_view(self, case: dict[str, Any]) -> dict[str, Any]:
         documents = sorted(case["documents"], key=lambda item: item["priority"])
@@ -334,8 +463,13 @@ class ViewBuilder:
         decision_status = str(judgement.get("decisionStatus") or "pending")
         summary_text = str(judgement.get("summary") or "").strip()
         final_response = str(judgement.get("finalResponseDraft") or "").strip()
-        suitability = self.suitability_status(summary, judgement, building, decision)
+        suitability = self.suitability_status(case, summary, judgement, building, decision)
+        has_floor_detail = self.detailed_floor_unit_known(case)
+        is_floor_detail_result = has_floor_detail and bool(case.get("floorDetailResultPending"))
         suitability["title"] = self.case_suitability_title(case, suitability["status"])
+        if is_floor_detail_result and suitability["status"] != "blocked":
+            suitability["title"] = "층별 용도를 확인했어요"
+            suitability["summary"] = "입력한 층/호수 기준으로 층별 용도를 다시 확인했어요. 이제 간판·외부공간 같은 추가 정보만 더 확인하면 서류를 확정할 수 있어요."
 
         api_status_items = [
             f"건축물대장: {self.status_label(building.get('status'))}",
@@ -350,22 +484,23 @@ class ViewBuilder:
             api_status_items.append(str(api_plan["skipReason"]))
 
         documents = sorted(case.get("documents") or [], key=lambda item: item.get("priority", 999))
-        questions_to_ask = self.question_items(judgement.get("questionsToAsk"), case)[:5]
-        for item in self.missing_info_question_items(missing_info, buckets=("recommendedNext",), case=case):
-            if item not in questions_to_ask:
-                questions_to_ask.append(item)
-        for item in self.condition_question_items(case):
-            if item not in questions_to_ask:
-                questions_to_ask.append(item)
-        questions_to_ask = questions_to_ask[:5]
+        questions_to_ask = self.dedupe_question_texts([
+            *self.question_items(judgement.get("questionsToAsk"), case),
+            *self.missing_info_question_items(missing_info, buckets=("recommendedNext",), case=case),
+            *self.condition_question_items(case),
+        ])[:5]
         document_order_items = [] if questions_to_ask else [
             f'{index}. {document["title"]}'
             for index, document in enumerate(documents, start=1)
         ]
 
         return {
-            "title": "건축물대장 확인 결과",
-            "headline": self.diagnosis_check_headline(case, building, decision, suitability["status"]),
+            "title": "세부 층·호수 확인 결과 가능해요" if is_floor_detail_result else "건축물대장 확인 결과",
+            "headline": (
+                "입력하신 층/호수를 반영해 건축물대장을 다시 확인했어요."
+                if is_floor_detail_result
+                else self.diagnosis_check_headline(case, building, decision, suitability["status"])
+            ),
             "provider": provider,
             "decisionStatus": decision_status,
             "suitability": suitability["status"],
@@ -374,10 +509,13 @@ class ViewBuilder:
             "summary": summary_text,
             "finalResponseDraft": final_response,
             "apiStatusItems": [],
-            "buildingItems": self.building_summary_items(building_for_display),
+            "buildingItems": self.building_summary_items(building_for_display, case=case),
+            "hideBuildingSummary": False,
             "canSayNow": self.string_items(judgement.get("canSayNow"))[:5],
             "cannotConfirmYet": self.string_items(judgement.get("cannotConfirmYet"))[:5],
             "questionsToAsk": questions_to_ask,
+            "questionsTitle": "추가 확인할 정보가 있어요!" if is_floor_detail_result else "추가로 확인할 것",
+            "hideQuestionsSummary": is_floor_detail_result,
             "procedureSteps": [],
             "documentOrderItems": [],
             "departmentItems": [],
@@ -386,6 +524,7 @@ class ViewBuilder:
     @classmethod
     def suitability_status(
         cls,
+        case: dict[str, Any],
         summary: dict[str, Any],
         judgement: dict[str, Any],
         building: dict[str, Any],
@@ -419,10 +558,15 @@ class ViewBuilder:
             }
         if building.get("status") == "ok" and decision.get("status") == "ok":
             if judgement.get("decisionStatus") == "needs_user_input":
+                signal_text = document_service.condition_signal_text(case)
+                condition_labels = ["간판", "조리 방식"]
+                outdoor_known_no = slot_value(case, "outdoor_space_planned") is False or document_service.has_negative_outdoor_signal(signal_text)
+                if not outdoor_known_no:
+                    condition_labels.insert(1, "외부공간")
                 return {
                     "status": "needs_info",
                     "title": "가능성은 보이지만 추가 정보가 필요해요",
-                    "summary": "건축물대장 기준으로는 가능성이 있고, 간판·외부공간·조리 방식 같은 조건을 더 받으면 제출 서류를 확정할 수 있어요.",
+                    "summary": f"건축물대장 기준으로는 가능성이 있고, {'·'.join(condition_labels)} 같은 조건을 더 받으면 제출 서류를 확정할 수 있어요.",
                 }
             return {
                 "status": "available",
@@ -440,6 +584,113 @@ class ViewBuilder:
             "title": "부서 확인이 필요해요",
             "summary": "건축물대장상 가능성은 보이지만 자동 확인만으로 최종 확정은 어려워요. 세부 조건과 담당 부서 확인을 이어갈게요.",
         }
+
+    @classmethod
+    def duration_estimate(cls, documents: list[dict[str, Any]]) -> dict[str, Any] | None:
+        durations: list[dict[str, Any]] = []
+        for document in documents:
+            bounds = cls.document_duration_bounds(document)
+            if not bounds:
+                continue
+            min_days, max_days = bounds
+            if max_days <= 0:
+                continue
+            durations.append({
+                "title": str(document.get("title") or ""),
+                "display": str(document.get("perceivedDuration") or ""),
+                "phase": cls.duration_phase(document),
+                "minDays": min_days,
+                "maxDays": max_days,
+            })
+
+        if not durations:
+            return None
+
+        phase_totals: dict[str, tuple[int, int]] = {
+            "pre": (0, 0),
+            "submission": (0, 0),
+            "after": (0, 0),
+        }
+        for item in durations:
+            phase = str(item["phase"])
+            current_min, current_max = phase_totals.get(phase, (0, 0))
+            phase_totals[phase] = (
+                max(current_min, int(item["minDays"])),
+                max(current_max, int(item["maxDays"])),
+            )
+
+        min_days = sum(value[0] for value in phase_totals.values())
+        max_days = sum(value[1] for value in phase_totals.values())
+        basis_items = [
+            f'{item["title"]}: {item["display"] or cls.format_business_day_range(item["minDays"], item["maxDays"])}'
+            for item in sorted(durations, key=lambda value: (value["maxDays"], value["minDays"]), reverse=True)[:3]
+        ]
+        return {
+            "title": "예상 전체 소요 기간",
+            "rangeLabel": cls.format_business_day_range(min_days, max_days),
+            "summary": "동시 준비 가능한 서류는 병렬로 진행한다고 보고 계산했어요.",
+            "minBusinessDays": min_days,
+            "maxBusinessDays": max_days,
+            "basisItems": basis_items,
+            "note": "보건소·구청 처리 상황과 보완 요청 여부에 따라 달라질 수 있어요.",
+        }
+
+    @staticmethod
+    def document_duration_bounds(document: dict[str, Any]) -> tuple[int, int] | None:
+        processing_time = document.get("processingTime") if isinstance(document.get("processingTime"), dict) else {}
+        if processing_time:
+            min_days = ViewBuilder.int_value(processing_time.get("minBusinessDays"))
+            max_days = ViewBuilder.int_value(processing_time.get("maxBusinessDays"))
+            min_minutes = ViewBuilder.int_value(processing_time.get("minMinutes"))
+            max_minutes = ViewBuilder.int_value(processing_time.get("maxMinutes"))
+            if min_days or max_days or min_minutes or max_minutes:
+                return (
+                    min_days + ViewBuilder.minutes_to_business_days(min_minutes),
+                    max_days + ViewBuilder.minutes_to_business_days(max_minutes),
+                )
+
+        text = str(document.get("perceivedDuration") or "")
+        if not text or "확인 필요" in text or "공공 처리기간 없음" in text:
+            return None
+        day_numbers = [int(value) for value in re.findall(r"(\d+)\s*일", text)]
+        if day_numbers:
+            return min(day_numbers), max(day_numbers)
+        if re.search(r"즉시|당일|시간", text):
+            return (0, 0)
+        return None
+
+    @staticmethod
+    def duration_phase(document: dict[str, Any]) -> str:
+        blocker = str(document.get("scheduleBlockerType") or "")
+        title = str(document.get("title") or "")
+        if blocker == "after_food_report" or "사업자등록" in title:
+            return "after"
+        if blocker == "submission_after_prerequisites" or "영업신고" in title:
+            return "submission"
+        return "pre"
+
+    @staticmethod
+    def minutes_to_business_days(minutes: int) -> int:
+        if minutes <= 0:
+            return 0
+        return 1 if minutes > 240 else 0
+
+    @staticmethod
+    def int_value(value: Any) -> int:
+        try:
+            return max(0, int(str(value or "").strip()))
+        except (TypeError, ValueError):
+            return 0
+
+    @staticmethod
+    def format_business_day_range(min_days: int, max_days: int) -> str:
+        if min_days <= 0 and max_days <= 0:
+            return "당일"
+        if min_days <= 0:
+            return f"당일~최대 {max_days}영업일"
+        if min_days == max_days:
+            return f"약 {min_days}영업일"
+        return f"최소 {min_days}영업일 ~ 최대 {max_days}영업일"
 
     @staticmethod
     def case_suitability_title(case: dict[str, Any], status: str) -> str:
@@ -508,11 +759,19 @@ class ViewBuilder:
             fields.append("manufacturing_or_simple_sale")
 
         conditions = set(str(item) for item in as_list(slot_value(case, "condition_screening")))
+        signal_text = document_service.condition_signal_text(case)
+        has_signage = document_service.has_signage_signal(case)
+        has_outdoor = document_service.has_outdoor_signal(case)
+        signage_known_no = slot_value(case, "signboard_planned") is False or document_service.has_negative_signage_signal(signal_text)
+        outdoor_known_no = slot_value(case, "outdoor_space_planned") is False or document_service.has_negative_outdoor_signal(signal_text)
         if not conditions:
-            fields.extend(["signboard_planned", "outdoor_space_planned"])
-        if "signage_planned" in conditions or slot_value(case, "signboard_planned") is True:
-            fields.extend(["signboard_type", "signboard_size", "owner_consent"])
-        if "outdoor_space_planned" in conditions or slot_value(case, "outdoor_space_planned") is True:
+            if not has_signage and not signage_known_no:
+                fields.append("signboard_planned")
+            if not has_outdoor and not outdoor_known_no:
+                fields.append("outdoor_space_planned")
+        if not signage_known_no and (has_signage or "signage_planned" in conditions or slot_value(case, "signboard_planned") is True):
+            fields.extend(["signboard_type", "signboard_size", "owner_consent", "signboard_image"])
+        if not outdoor_known_no and (has_outdoor or "outdoor_space_planned" in conditions or slot_value(case, "outdoor_space_planned") is True):
             fields.extend(["outdoor_location", "outdoor_area", "owner_consent"])
 
         questions: list[str] = []
@@ -535,9 +794,55 @@ class ViewBuilder:
                 if cls.hide_question_item(case, item):
                     continue
                 text = str(item.get("question") or item.get("label") or item.get("id") or "").strip()
+            if cls.hide_question_text(case, text):
+                continue
             if text:
                 questions.append(text)
         return questions
+
+    @classmethod
+    def dedupe_question_texts(cls, items: list[str]) -> list[str]:
+        questions: list[str] = []
+        seen: set[str] = set()
+        for item in items:
+            text = re.sub(r"\s+", " ", str(item or "")).strip()
+            if not text:
+                continue
+            key = cls.question_semantic_key(text)
+            if key in seen:
+                continue
+            seen.add(key)
+            questions.append(text)
+        return questions
+
+    @staticmethod
+    def question_semantic_key(text: str) -> str:
+        compact = re.sub(r"[\s\W_]+", "", text or "").lower()
+        if not compact:
+            return ""
+        if any(token in compact for token in ("건물주", "관리인", "소유자", "대지소유자")) and any(token in compact for token in ("승낙", "동의", "허락", "사용권")):
+            return "owner_consent"
+        if "간판" in compact:
+            if any(token in compact for token in ("크기", "면적", "가로", "세로", "높이", "길이", "규격")):
+                return "signboard_size"
+            if "종류" in compact or ("어떤" in compact and any(token in compact for token in ("설치", "변경"))):
+                return "signboard_type"
+            if any(token in compact for token in ("위치", "어디")):
+                return "signboard_location"
+            if any(token in compact for token in ("설치", "변경", "바꿀", "예정", "계획")):
+                return "signboard_planned"
+        if any(token in compact for token in ("외부", "테이블", "테라스", "보도", "도로")):
+            if any(token in compact for token in ("면적", "크기", "수량", "몇개", "몇대")):
+                return "outdoor_area"
+            if any(token in compact for token in ("위치", "어디", "사유지", "도로", "보도")):
+                return "outdoor_location"
+            if any(token in compact for token in ("사용", "예정", "계획", "둘", "두", "좌석")):
+                return "outdoor_space_planned"
+        if any(token in compact for token in ("술", "주류")):
+            return "liquor_sales"
+        if any(token in compact for token in ("직접", "조리", "제조", "가공", "완제품")):
+            return "manufacturing_or_simple_sale"
+        return compact
 
     @classmethod
     def missing_info_question_items(cls, missing_info: dict[str, Any], buckets: tuple[str, ...], case: dict[str, Any]) -> list[str]:
@@ -551,20 +856,21 @@ class ViewBuilder:
                     text = str(item.get("question") or item.get("label") or item.get("id") or "").strip()
                 else:
                     text = str(item or "").strip()
+                if cls.hide_question_text(case, text):
+                    continue
                 if text and text not in questions:
                     questions.append(text)
         return questions
 
-    @staticmethod
-    def hide_question_item(case: dict[str, Any], item: dict[str, Any]) -> bool:
+    @classmethod
+    def hide_question_item(cls, case: dict[str, Any], item: dict[str, Any]) -> bool:
         question_id = str(item.get("id") or item.get("field") or "").strip()
         if question_id in DISPLAY_QUESTION_SKIP_IDS:
             return True
         if question_id in ADDRESS_QUESTION_IDS and slot_known(case, "exact_address"):
             return True
         if question_id in FLOOR_QUESTION_IDS:
-            address = str(slot_value(case, "exact_address") or "")
-            if slot_known(case, "floor_unit") or any(token in address for token in ["층", "호"]):
+            if cls.has_floor_or_unit_hint(case):
                 return True
         known_by_id = {
             "area": "area",
@@ -575,12 +881,37 @@ class ViewBuilder:
             "outdoor_space": "outdoor_space_planned",
             "signboard_type": "signboard_type",
             "signboard_size": "signboard_size",
+            "signboard_image": "signboard_image",
             "owner_consent": "owner_consent",
             "outdoor_location": "outdoor_location",
             "outdoor_area": "outdoor_area",
         }
         field = known_by_id.get(question_id)
         return bool(field and slot_known(case, field))
+
+    @classmethod
+    def hide_question_text(cls, case: dict[str, Any], text: str) -> bool:
+        if not text or not FLOOR_FOLLOWUP_TEXT_RE.search(text):
+            return False
+        return cls.has_floor_or_unit_hint(case) or bool(FLOOR_OR_UNIT_HINT_RE.search(text))
+
+    @staticmethod
+    def has_floor_or_unit_hint(case: dict[str, Any]) -> bool:
+        if slot_known(case, "floor_unit"):
+            return True
+
+        candidates: list[str] = [
+            str(slot_value(case, "exact_address") or ""),
+            str(slot_value(case, "location") or ""),
+            str(case.get("rawInput") or ""),
+        ]
+        for answer in case.get("answers") or []:
+            if isinstance(answer, dict):
+                candidates.extend(str(answer.get(key) or "") for key in ("answer", "text", "value"))
+            else:
+                candidates.append(str(answer or ""))
+
+        return any(FLOOR_OR_UNIT_HINT_RE.search(text) for text in candidates if text)
 
     @staticmethod
     def string_items(items: Any) -> list[str]:
@@ -619,7 +950,7 @@ class ViewBuilder:
         return building
 
     @staticmethod
-    def building_summary_items(building_or_summary: dict[str, Any]) -> list[str]:
+    def building_summary_items(building_or_summary: dict[str, Any], case: dict[str, Any] | None = None) -> list[str]:
         if not building_or_summary:
             return []
 
@@ -641,25 +972,150 @@ class ViewBuilder:
 
         floor_uses = summary.get("floorUses") or summary.get("usesByFloor") or []
         floor_texts = []
+        target_floor = ViewBuilder.target_floor_number(case or {})
         for floor in floor_uses if isinstance(floor_uses, list) else []:
             if isinstance(floor, dict):
-                bits = [
-                    str(floor.get("floor") or floor.get("flrNoNm") or "").strip(),
+                floor_label = str(floor.get("floor") or floor.get("flrNoNm") or "").strip()
+                use_bits = ViewBuilder.compact_building_use_bits([
                     str(floor.get("mainPurpsCdNm") or floor.get("mainPurps") or "").strip(),
                     str(floor.get("etcPurps") or "").strip(),
-                ]
-                text = " ".join(bit for bit in bits if bit)
+                ])
+                text = " ".join(bit for bit in [floor_label, *use_bits] if bit)
             else:
-                text = str(floor or "").strip()
+                text = ViewBuilder.clean_floor_use_text(str(floor or ""))
             if text:
                 floor_texts.append(text)
+        if target_floor is not None:
+            targeted = [
+                text
+                for text in floor_texts
+                if ViewBuilder.floor_use_matches_target(text, target_floor)
+            ]
+            if targeted:
+                floor_texts = targeted
         if floor_texts:
+            floor_texts = ViewBuilder.group_floor_use_texts(floor_texts)
             items.append("층별 용도: " + " / ".join(floor_texts[:4]))
 
         land_zones = summary.get("landUseZones") or summary.get("landZones") or summary.get("zones") or []
         if isinstance(land_zones, list) and land_zones:
             items.append("지역지구: " + ", ".join(str(zone) for zone in land_zones[:4]))
         return items
+
+    @staticmethod
+    def compact_building_use_bits(values: list[str]) -> list[str]:
+        unique: list[str] = []
+        for value in values:
+            text = re.sub(r"\s+", " ", value or "").strip()
+            key = re.sub(r"[\s\W_]+", "", text).lower()
+            if not text or not key:
+                continue
+            replaced = False
+            should_skip = False
+            for index, existing in enumerate(unique):
+                existing_key = re.sub(r"[\s\W_]+", "", existing).lower()
+                if key == existing_key:
+                    should_skip = True
+                    break
+                if key in existing_key:
+                    should_skip = True
+                    break
+                if existing_key in key:
+                    unique[index] = text
+                    replaced = True
+                    break
+            if should_skip:
+                continue
+            if replaced:
+                continue
+            unique.append(text)
+        return unique
+
+    @staticmethod
+    def clean_floor_use_text(value: str) -> str:
+        text = re.sub(r"\s+", " ", value or "").strip()
+        if not text:
+            return ""
+        match = re.match(r"^((?:지하\s*)?\d+\s*층|지\s*\d+\s*층|[bB]\d+\s*층?|옥탑)\s+(.+)$", text)
+        if not match:
+            return text
+        floor_label = re.sub(r"\s+", "", match.group(1))
+        uses = ViewBuilder.compact_building_use_bits(match.group(2).split())
+        return " ".join([floor_label, *uses]).strip()
+
+    @staticmethod
+    def group_floor_use_texts(values: list[str]) -> list[str]:
+        grouped: list[dict[str, Any]] = []
+        passthrough: list[str] = []
+        for value in values:
+            parsed = ViewBuilder.parse_floor_use_text(value)
+            if not parsed:
+                if value not in passthrough:
+                    passthrough.append(value)
+                continue
+            floor_label, use_text = parsed
+            use_key = re.sub(r"[\s\W_]+", "", use_text).lower()
+            target = next((item for item in grouped if item["key"] == use_key), None)
+            if target:
+                if floor_label not in target["floors"]:
+                    target["floors"].append(floor_label)
+            else:
+                grouped.append({"key": use_key, "floors": [floor_label], "use": use_text})
+        return [f"{'·'.join(item['floors'])} {item['use']}" for item in grouped] + passthrough
+
+    @staticmethod
+    def parse_floor_use_text(value: str) -> tuple[str, str] | None:
+        text = re.sub(r"\s+", " ", value or "").strip()
+        match = re.match(r"^((?:지하\s*)?\d+\s*층|지\s*\d+\s*층|[bB]\d+\s*층?|옥탑)\s+(.+)$", text)
+        if not match:
+            return None
+        return re.sub(r"\s+", "", match.group(1)), match.group(2).strip()
+
+    @staticmethod
+    def detailed_floor_unit_known(case: dict[str, Any]) -> bool:
+        return slot_known(case, "floor_unit") or ViewBuilder.target_floor_number(case) is not None
+
+    @staticmethod
+    def target_floor_number(case: dict[str, Any]) -> int | None:
+        candidates = [
+            str(slot_value(case, "floor_unit") or ""),
+            str(slot_value(case, "exact_address") or ""),
+            str(case.get("rawInput") or ""),
+        ]
+        for text in candidates:
+            floor = ViewBuilder.floor_number_from_text(text)
+            if floor is not None:
+                return floor
+        return None
+
+    @staticmethod
+    def floor_number_from_text(text: str) -> int | None:
+        value = re.sub(r"\s+", " ", text or "").strip()
+        if not value:
+            return None
+        basement = re.search(r"(?:지하|B)\s*(\d+)\s*층?", value, re.IGNORECASE)
+        if basement:
+            return -int(basement.group(1))
+        floor = re.search(r"(?<!지하\s)(?<!B)(\d+)\s*층", value, re.IGNORECASE)
+        if floor:
+            return int(floor.group(1))
+        unit = re.search(r"(\d{3,5})\s*호", value)
+        if unit:
+            number = unit.group(1)
+            return int(number[:-2])
+        return None
+
+    @staticmethod
+    def floor_use_matches_target(value: str, target_floor: int) -> bool:
+        parsed = ViewBuilder.parse_floor_use_text(value)
+        if not parsed:
+            return False
+        label, _ = parsed
+        normalized = re.sub(r"\s+", "", label).lower()
+        if target_floor < 0:
+            floor = abs(target_floor)
+            return normalized in {f"지{floor}층", f"지하{floor}층", f"b{floor}", f"b{floor}층"}
+        return normalized == f"{target_floor}층"
 
     @staticmethod
     def format_building_value(key: str, value: Any) -> str:

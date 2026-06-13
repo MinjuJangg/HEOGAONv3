@@ -71,17 +71,25 @@ export function AddressSearchView({
   }
 
   async function selectResult(result: AddressResult) {
-    setSelected(result);
+    const detailHint = extractFloorUnitHint(query);
+    const resolvedResult = {
+      ...result,
+      label: appendAddressDetail(result.label, detailHint),
+      roadAddress: appendAddressDetail(result.roadAddress || result.label, detailHint),
+      jibunAddress: appendAddressDetail(result.jibunAddress, detailHint),
+    };
+
+    setSelected(resolvedResult);
     setResults([]);
     setSearched(false);
-    setQuery(result.label);
+    setQuery(resolvedResult.label);
     setConfirmed(false);
     setNoBuilding(false);
     setError("");
 
     const address: ResolvedAddress = {
-      roadAddress: result.roadAddress || result.label,
-      jibunAddress: result.jibunAddress,
+      roadAddress: resolvedResult.roadAddress || resolvedResult.label,
+      jibunAddress: resolvedResult.jibunAddress,
       buildingParams: result.buildingParams,
     };
 
@@ -178,4 +186,15 @@ export function AddressSearchView({
       </div>
     </section>
   );
+}
+
+function extractFloorUnitHint(value: string) {
+  const matches = value.match(/(?:지하\s*)?\d+\s*층\s*(?:[A-Za-z]?\d{1,5}\s*호)?|[A-Za-z]?\d{1,5}\s*호/g);
+  return matches?.[matches.length - 1]?.replace(/\s+/g, " ").trim() || "";
+}
+
+function appendAddressDetail(address: string, detail: string) {
+  if (!address || !detail) return address;
+  if (address.replace(/\s+/g, "").includes(detail.replace(/\s+/g, ""))) return address;
+  return `${address} ${detail}`;
 }

@@ -62,6 +62,8 @@ export interface SlotQuestionView {
   field: string;
   title: string;
   subtitle?: string;
+  prompt?: string;
+  promptDescription?: string;
   inputMode: "single_select" | "multi_select" | "free_text";
   options: QuestionOption[];
   validationMessage?: string;
@@ -107,12 +109,25 @@ export interface DiagnosisGuidance {
   finalResponseDraft?: string;
   apiStatusItems: string[];
   buildingItems: string[];
+  hideBuildingSummary?: boolean;
   canSayNow: string[];
   cannotConfirmYet: string[];
   questionsToAsk: string[];
   procedureSteps: string[];
   documentOrderItems: string[];
   departmentItems?: string[];
+  questionsTitle?: string;
+  hideQuestionsSummary?: boolean;
+}
+
+export interface DurationEstimate {
+  title: string;
+  rangeLabel: string;
+  summary: string;
+  minBusinessDays: number;
+  maxBusinessDays: number;
+  basisItems: string[];
+  note?: string;
 }
 
 export interface DecisionBlock {
@@ -139,6 +154,7 @@ export interface DocumentsView {
   title: string;
   documents: DocumentItem[];
   completedDocumentIds: string[];
+  durationEstimate?: DurationEstimate;
   nextButtonLabel: string;
 }
 
@@ -166,9 +182,25 @@ export interface DocumentItem {
   submissionPhase?: string;
   issueChannel?: string;
   blockingPrerequisites?: string[];
+  conditionalAttachments?: Array<{
+    title: string;
+    condition?: string;
+  }>;
   dependencyNote?: string;
   graphPrerequisites?: string;
   dependsOn?: string[];
+  processingTime?: {
+    minBusinessDays?: number | string;
+    maxBusinessDays?: number | string;
+    minMinutes?: number | string;
+    maxMinutes?: number | string;
+    display?: string;
+    profileId?: string;
+    blockerType?: string;
+    schedulePriorityRank?: number | string;
+  };
+  scheduleBlockerType?: string;
+  schedulePriorityRank?: number | string;
   trackId?: string;
   trackTitle?: string;
   trackDescription?: string;

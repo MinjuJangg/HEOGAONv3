@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from schedule_planner import enrich_requirement_graph_schedule
+
 
 GRAPH_VERSION = "heogaon.requirement_graph.v1"
 
@@ -499,7 +501,7 @@ def build_requirement_graph(slots: dict[str, Any]) -> dict[str, Any]:
             edges.append({"from": action_id, "to": doc_id, "type": "requires_document"})
 
     document_list = list(documents.values())
-    return {
+    graph = {
         "version": GRAPH_VERSION,
         "scope": scope,
         "graphLogic": {
@@ -518,3 +520,4 @@ def build_requirement_graph(slots: dict[str, Any]) -> dict[str, Any]:
         "missingInputs": collect_missing_inputs(action_statuses, slots),
         "procedurePlan": build_procedure_plan(scope, action_statuses, document_list),
     }
+    return enrich_requirement_graph_schedule(graph)

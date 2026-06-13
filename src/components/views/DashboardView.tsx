@@ -31,10 +31,11 @@ export function DashboardView({
   const remaining = sorted.filter((document) => !completedDocumentIds.includes(document.id));
   const next = remaining.find((document) => blockingTitlesFor(document).length === 0);
   const rest = remaining.filter((document) => document.id !== next?.id);
+  const unknown = view.summary.unknownFields;
   const updatedNote = view.sections
     ?.flatMap((section) => section.items)
     .find((item) => item.tone === "updated");
-  const nextCount = rest.length;
+  const remainCount = rest.length + (unknown > 0 ? 1 : 0);
 
   return (
     <>
@@ -82,10 +83,10 @@ export function DashboardView({
           </span>
         </button>
 
-        {nextCount > 0 ? (
+        {remainCount > 0 ? (
           <section className="dash-remain">
             <h2 className="dash-remain-head">
-              다음 할 일 <span className="dash-remain-count">{nextCount}</span>
+              다음 할 일 <span className="dash-remain-count">{remainCount}</span>
             </h2>
             <ul className="dash-remain-list">
               {rest.map((document) => {
@@ -107,6 +108,18 @@ export function DashboardView({
                   </li>
                 );
               })}
+              {unknown > 0 ? (
+                <li>
+                  <button className="dash-row dash-row--check" type="button" onClick={onContinue}>
+                    <span className="dash-row-icon" aria-hidden="true"><Icon name="help" size={15} /></span>
+                    <span className="dash-row-main">
+                      <span className="dash-row-title">확인이 필요한 항목</span>
+                      <span className="dash-row-meta">{unknown}개 더 확인하면 정확해져요</span>
+                    </span>
+                    <span className="dash-row-arrow">확인 <Icon name="arrowRight" size={15} /></span>
+                  </button>
+                </li>
+              ) : null}
             </ul>
           </section>
         ) : null}

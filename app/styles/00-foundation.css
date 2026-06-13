@@ -687,6 +687,32 @@
         display: none !important;
       }
 
+      .slot-question-prompt {
+        margin-top: 26px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .slot-question-prompt h2 {
+        margin: 0;
+        color: var(--text);
+        font-size: 22px;
+        font-weight: 820;
+        line-height: 1.28;
+        word-break: keep-all;
+        overflow-wrap: anywhere;
+      }
+
+      .slot-question-prompt p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 620;
+        line-height: 1.5;
+        word-break: keep-all;
+        overflow-wrap: anywhere;
+      }
+
       .question-validation {
         margin: 10px 0 0;
         color: #d92d20;
@@ -783,6 +809,14 @@
 
       .option.selected .option-icon {
         background: #ffffff;
+      }
+
+      .option-number-icon {
+        color: var(--primary);
+        font-size: 18px;
+        font-weight: 820;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
       }
 
       .option-main {

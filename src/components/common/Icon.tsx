@@ -6,13 +6,14 @@ export type IconName =
   | "bag"
   | "building2"
   | "check"
+  | "clock"
   | "close"
   | "coffee"
   | "copy"
   | "edit"
   | "fan"
-  | "fileCheck"
   | "factory"
+  | "fileCheck"
   | "help"
   | "home"
   | "list"
@@ -39,6 +40,7 @@ const paths: Record<IconName, string> = {
   bag: '<path d="M6 2 3.5 6v13a2 2 0 0 0 2 2h13a2 2 0 0 0 2-2V6L18 2H6z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.5 6h17M16 10a4 4 0 0 1-8 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
   building2: '<path d="M4 21h16M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M9 7h.01M12 7h.01M15 7h.01M9 11h.01M12 11h.01M15 11h.01M9 15h.01M12 15h.01M15 15h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
   check: '<path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+  clock: '<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
   close: '<path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
   coffee: '<path d="M4 8h13v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 9h1.5a2.5 2.5 0 0 1 0 5H17M8 2.5V4.5M12.5 2.5V4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
   copy: '<rect x="8" y="8" width="12" height="12" rx="2" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
@@ -81,6 +83,8 @@ export function iconForOption(optionId: string, field?: string): IconName {
   if (field === "liquor_sales" && optionId === "yes") return "wine";
   if (field === "signboard_planned" && optionId === "yes") return "signpost";
   if (field === "outdoor_space_planned" && optionId === "yes") return "store";
+  if (field === "owner_consent" && optionId === "yes") return "fileCheck";
+  if (field === "owner_consent" && optionId === "owner") return "home";
   if (optionId === "make_or_process") return "factory";
   if (optionId === "finished_goods") return "bag";
 

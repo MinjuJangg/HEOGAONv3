@@ -879,8 +879,29 @@
         gap: 10px;
       }
 
-      .understanding-actions .reset-confirm-secondary {
+      .understanding-actions .reset-confirm-secondary,
+      .understanding-edit-button {
         width: 100%;
+      }
+
+      .understanding-edit-button {
+        min-height: 54px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border: 1px solid #d8e2ee;
+        border-radius: 16px;
+        background: #ffffff;
+        color: var(--text-secondary);
+        font-size: 15px;
+        font-weight: 760;
+        line-height: 1;
+        box-shadow: none;
+      }
+
+      .understanding-edit-button:active {
+        transform: translateY(1px);
       }
 
       .missing-summary-list {

@@ -15,6 +15,7 @@ AI_GUIDANCE_SYSTEM_PROMPT = """
 5. 사용자가 “간판만”, “가게 앞 테이블”, “기존 업소 인수”, “서류 준비”처럼 창업이 아닌 목적을 말하면 그 scenario에 맞춰 답한다.
 6. 답변은 현재 가능한 것, 아직 막힌 것, 다음 입력/행동, 담당 부서/서류 순서 순으로 간단히 정리한다.
 7. aiJudgement가 있으면 그 판단 JSON을 우선 사용하고, 세부 근거가 필요할 때 requirementGraph/API 결과를 확인한다.
+8. If requirementGraph.schedulePlan exists, mention time-aware priority, official processing duration, blockers, and parallel tracks.
 """.strip()
 
 
@@ -69,12 +70,14 @@ def build_answer_plan(result: dict[str, Any]) -> dict[str, Any]:
             "최종 판단을 위해 막힌 정보",
             "다음에 받을 질문",
             "서류/부서/제출 순서",
+            "Schedule priority and parallel tracks",
         ],
         "mustMention": {
             "possibleNow": current_state.get("possibleNow", []),
             "blockedOrUncertain": current_state.get("blockedOrUncertain", []),
             "documentPlan": result.get("requirementGraph", {}).get("documentPlan", {}),
             "departmentPlan": result.get("requirementGraph", {}).get("departmentPlan", {}),
+            "schedulePlan": result.get("requirementGraph", {}).get("schedulePlan", {}),
         },
     }
 
