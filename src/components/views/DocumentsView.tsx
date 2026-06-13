@@ -18,6 +18,7 @@ export function DocumentsView({
   onCloseDocument: () => void;
 }) {
   const sortedDocuments = [...view.documents].sort((a, b) => a.priority - b.priority);
+  const trackGroups = groupDocumentsByTrack(sortedDocuments);
   const titleById = new Map(view.documents.map((document) => [document.id, document.title]));
   const completedCount = completedDocumentIds.length;
   const totalCount = view.documents.length;
@@ -51,47 +52,58 @@ export function DocumentsView({
               <h3 className="document-prep-group-title">준비 순서</h3>
               <span className="document-prep-group-count">{view.documents.length}개</span>
             </div>
-            <ol className="document-timeline">
-              {sortedDocuments.map((document) => {
-                const completed = completedDocumentIds.includes(document.id);
-                const blockingTitles = blockingTitlesFor(document, completedDocumentIds, titleById);
-                const locked = !completed && blockingTitles.length > 0;
-                const current = document.id === firstCurrentId;
-                const stateClass = completed ? " is-done" : current ? " is-current" : locked ? " is-locked" : "";
-                return (
-                  <li className={`document-timeline-item${stateClass}`} key={document.id}>
-                    <span className="document-timeline-rail" aria-hidden="true">
-                      <span className="document-timeline-marker">
-                        {completed ? <Icon name="check" size={14} /> : locked ? <Icon name="lock" size={14} /> : document.priority}
-                      </span>
-                    </span>
-                    <button className="document-timeline-body" type="button" onClick={() => onOpenDocument(document)}>
-                      <span className="document-timeline-head">
-                        <span className="document-timeline-title">{document.title}</span>
-                        {current ? <span className="document-timeline-badge">지금 작성</span> : null}
-                      </span>
-                      <span className="document-timeline-meta">예상 소요 {document.perceivedDuration}</span>
-                      {locked ? (
-                        <span className="document-timeline-lock">{blockingTitles.join(" · ")} 완료 후 작성할 수 있어요</span>
-                      ) : (
-                        <span className="document-timeline-link">자세히 <Icon name="arrowRight" size={14} /></span>
-                      )}
-                    </button>
-                    {!locked && !completed ? (
-                      <label className="document-prep-check">
-                        <input
-                          className="document-prep-check-input"
-                          type="checkbox"
-                          checked={false}
-                          aria-label={`${document.title} 완료`}
-                          onChange={(event) => onToggleDocument(document.id, event.target.checked)}
-                        />
-                      </label>
-                    ) : null}
-                  </li>
-                );
-              })}
-            </ol>
+            <div className="document-track-list">
+              {trackGroups.map((group) => (
+                <section className="document-track-group" key={group.id}>
+                  <div className="document-track-head">
+                    <span className="document-track-step">{group.phaseTitle}</span>
+                    <h4 className="document-track-title">{group.title}</h4>
+                    {group.description ? <p className="document-track-desc">{group.description}</p> : null}
+                  </div>
+                  <ol className="document-timeline">
+                    {group.documents.map((document) => {
+                      const completed = completedDocumentIds.includes(document.id);
+                      const blockingTitles = blockingTitlesFor(document, completedDocumentIds, titleById);
+                      const locked = !completed && blockingTitles.length > 0;
+                      const current = document.id === firstCurrentId;
+                      const stateClass = completed ? " is-done" : current ? " is-current" : locked ? " is-locked" : "";
+                      return (
+                        <li className={`document-timeline-item${stateClass}`} key={document.id}>
+                          <span className="document-timeline-rail" aria-hidden="true">
+                            <span className="document-timeline-marker">
+                              {completed ? <Icon name="check" size={14} /> : locked ? <Icon name="lock" size={14} /> : document.priority}
+                            </span>
+                          </span>
+                          <button className="document-timeline-body" type="button" onClick={() => onOpenDocument(document)}>
+                            <span className="document-timeline-head">
+                              <span className="document-timeline-title">{document.title}</span>
+                              {current ? <span className="document-timeline-badge">지금 작성</span> : null}
+                            </span>
+                            <span className="document-timeline-meta">{document.phaseTitle || group.phaseTitle} · 예상 소요 {document.perceivedDuration}</span>
+                            {locked ? (
+                              <span className="document-timeline-lock">{blockingTitles.join(" · ")} 완료 후 작성할 수 있어요</span>
+                            ) : (
+                              <span className="document-timeline-link">자세히 <Icon name="arrowRight" size={14} /></span>
+                            )}
+                          </button>
+                          {!locked && !completed ? (
+                            <label className="document-prep-check">
+                              <input
+                                className="document-prep-check-input"
+                                type="checkbox"
+                                checked={false}
+                                aria-label={`${document.title} 완료`}
+                                onChange={(event) => onToggleDocument(document.id, event.target.checked)}
+                              />
+                            </label>
+                          ) : null}
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </section>
+              ))}
+            </div>
           </section>
         </section>
       </div>
@@ -116,6 +128,42 @@ function blockingTitlesFor(
     .map((id) => titleById.get(id) || id);
 }
 
+function groupDocumentsByTrack(documents: DocumentItem[]) {
+  const groups: Array<{
+    id: string;
+    title: string;
+    description: string;
+    phase: number;
+    phaseTitle: string;
+    documents: DocumentItem[];
+  }> = [];
+  const groupById = new Map<string, (typeof groups)[number]>();
+
+  documents.forEach((document) => {
+    const phase = document.phase ?? 1;
+    const title = document.trackTitle || document.phaseTitle || "서류 준비";
+    const id = `${phase}-${document.trackId || title}`;
+    const existing = groupById.get(id);
+    if (existing) {
+      existing.documents.push(document);
+      return;
+    }
+
+    const group = {
+      id,
+      title,
+      description: document.trackDescription || "",
+      phase,
+      phaseTitle: document.phaseTitle || `${phase}단계`,
+      documents: [document],
+    };
+    groups.push(group);
+    groupById.set(id, group);
+  });
+
+  return groups.sort((a, b) => a.phase - b.phase || documents.indexOf(a.documents[0]) - documents.indexOf(b.documents[0]));
+}
+
 function DocumentDetail({
   document,
   blockingTitles,
@@ -126,6 +174,8 @@ function DocumentDetail({
   onClose: () => void;
 }) {
   const blockers = document.blockingPrerequisites ?? [];
+  const officialLinks = document.officialLinks ?? [];
+  const prepareInfo = document.prepareInfo ?? [];
 
   return (
     <div className="document-detail-overlay" data-document-detail-overlay onClick={(event) => event.target === event.currentTarget && onClose()}>
@@ -144,6 +194,12 @@ function DocumentDetail({
             <span>{blockingTitles.join(", ")} 완료 후 작성할 수 있어요</span>
           </div>
         ) : null}
+        {document.trackTitle || document.phaseTitle ? (
+          <p className="document-detail-note">
+            {document.phaseTitle ? `${document.phaseTitle} · ` : ""}{document.trackTitle || "서류 준비"}
+            {document.trackDescription ? `: ${document.trackDescription}` : ""}
+          </p>
+        ) : null}
         <ul className="document-detail-steps" aria-label={`${document.title} 확인 순서`}>
           {document.steps.map((step, index) => (
             <li className="document-detail-step" key={step}>
@@ -156,18 +212,20 @@ function DocumentDetail({
           ))}
         </ul>
         <div className="document-detail-meta-grid">
-          <div className="document-detail-meta-card">
-            <span className="document-detail-label">발급처</span>
-            <span className="document-detail-meta-text">{document.issuer || "해당 발급기관 확인 필요"}</span>
-          </div>
-          <div className="document-detail-meta-card">
-            <span className="document-detail-label">제출처</span>
-            <span className="document-detail-meta-text">{document.submitTo || "관할 담당부서 확인 필요"}</span>
-          </div>
-          <div className="document-detail-meta-card">
-            <span className="document-detail-label">제출 시점</span>
-            <span className="document-detail-meta-text">{document.submissionPhase || "제출 전 확인"}</span>
-          </div>
+          <DetailMetaCard
+            label="발급처"
+            value={document.issuer || "해당 발급기관 확인 필요"}
+            url={document.issuerUrl}
+            linkLabel={document.issuerLinkLabel}
+          />
+          <DetailMetaCard
+            label="제출처"
+            value={document.submitTo || "관할 담당부서 확인 필요"}
+            url={document.submitUrl}
+            linkLabel={document.submitLinkLabel}
+          />
+          <DetailMetaCard label="제출 시점" value={document.submissionPhase || "제출 전 확인"} />
+          {document.issueChannel ? <DetailMetaCard label="준비 방식" value={document.issueChannel} /> : null}
         </div>
         {blockers.length ? (
           <div className="document-detail-section">
@@ -181,24 +239,56 @@ function DocumentDetail({
           <p className="document-detail-note">그래프 기준 선행관계: {document.graphPrerequisites}</p>
         ) : null}
         {document.dependencyNote ? <p className="document-detail-note">{document.dependencyNote}</p> : null}
-        <div className="document-detail-section">
-          <span className="document-detail-label">필요한 정보</span>
-          <ul className="document-detail-fields">
-            {document.prepareInfo.map((field) => <li className="document-detail-field" key={field}>{field}</li>)}
-          </ul>
-        </div>
-        <div className="document-detail-actions">
-          <a className="document-detail-site" href={document.officialLinks[0]?.url || "https://www.gov.kr"} target="_blank" rel="noreferrer">
-            <span className="document-detail-site-icon" aria-hidden="true"><Icon name="building2" /></span>
-            <span className="document-detail-site-main">
-              <span className="document-detail-site-kicker">공식 사이트</span>
-              <span className="document-detail-site-title">{document.officialLinks[0]?.label || "정부24"}</span>
-              <span className="document-detail-site-meta">서류 준비 {document.canPrepareBeforeInquiry ? "가능" : "확인 필요"}</span>
-              <span className="document-detail-link">열기 <Icon name="arrowRight" size={16} /></span>
-            </span>
-          </a>
-        </div>
+        {prepareInfo.length ? (
+          <div className="document-detail-section">
+            <span className="document-detail-label">필요한 정보</span>
+            <ul className="document-detail-fields">
+              {prepareInfo.map((field) => <li className="document-detail-field" key={field}>{field}</li>)}
+            </ul>
+          </div>
+        ) : null}
+        {officialLinks.length ? (
+          <div className="document-detail-actions">
+            {officialLinks.map((link) => (
+              <a className="document-detail-site" href={link.url} target="_blank" rel="noreferrer" key={`${link.label}-${link.url}`}>
+                <span className="document-detail-site-icon" aria-hidden="true"><Icon name="building2" /></span>
+                <span className="document-detail-site-main">
+                  <span className="document-detail-site-kicker">관련 링크</span>
+                  <span className="document-detail-site-title">{link.label}</span>
+                  <span className="document-detail-site-meta">서류 준비 {document.canPrepareBeforeInquiry ? "가능" : "확인 필요"}</span>
+                  <span className="document-detail-link">열기 <Icon name="arrowRight" size={16} /></span>
+                </span>
+              </a>
+            ))}
+          </div>
+        ) : null}
       </section>
+    </div>
+  );
+}
+
+function DetailMetaCard({
+  label,
+  value,
+  url,
+  linkLabel,
+}: {
+  label: string;
+  value: string;
+  url?: string;
+  linkLabel?: string;
+}) {
+  return (
+    <div className="document-detail-meta-card">
+      <span className="document-detail-label">{label}</span>
+      {url ? (
+        <a className="document-detail-meta-link" href={url} target="_blank" rel="noreferrer">
+          <span>{value}</span>
+          <span className="document-detail-meta-link-action">{linkLabel || "열기"} <Icon name="arrowRight" size={14} /></span>
+        </a>
+      ) : (
+        <span className="document-detail-meta-text">{value}</span>
+      )}
     </div>
   );
 }

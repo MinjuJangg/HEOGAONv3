@@ -371,7 +371,7 @@ def gms_ai_judgement(result: dict[str, Any]) -> dict[str, Any]:
         system_prompt=prompt["system"],
         user_payload=prompt["user"],
         temperature=0.1,
-        max_output_tokens=2800,
+        max_output_tokens=5600,
         timeout=60,
     )
     judgement.pop("_gmsMeta", None)

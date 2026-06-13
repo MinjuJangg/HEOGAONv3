@@ -20,6 +20,7 @@ export interface ApiEnvelope {
     slots: Record<string, SlotRecord>;
     answers: AnswerLog[];
     documents: DocumentItem[];
+    inquiryTasks: unknown[];
     completedDocumentIds: string[];
     questionLoop: QuestionLoop;
     flowState: Record<string, unknown>;
@@ -111,7 +112,7 @@ export interface DiagnosisGuidance {
   questionsToAsk: string[];
   procedureSteps: string[];
   documentOrderItems: string[];
-  departmentItems: string[];
+  departmentItems?: string[];
 }
 
 export interface DecisionBlock {
@@ -156,12 +157,22 @@ export interface DocumentItem {
   steps: string[];
   canPrepareBeforeInquiry: boolean;
   issuer?: string;
+  issuerUrl?: string;
+  issuerLinkLabel?: string;
   submitTo?: string;
+  submitUrl?: string;
+  submitLinkLabel?: string;
   submissionPhase?: string;
+  issueChannel?: string;
   blockingPrerequisites?: string[];
   dependencyNote?: string;
   graphPrerequisites?: string;
   dependsOn?: string[];
+  trackId?: string;
+  trackTitle?: string;
+  trackDescription?: string;
+  phase?: number;
+  phaseTitle?: string;
 }
 
 export interface DashboardView {

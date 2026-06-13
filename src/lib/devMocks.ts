@@ -259,6 +259,7 @@ export function createDevEnvelope(type: ViewType): ApiEnvelope {
         },
       ],
       documents,
+      inquiryTasks: [],
       completedDocumentIds: type === "documents" ? ["business-registration"] : documents.map((document) => document.id),
       questionLoop: {
         status: "active",

@@ -191,6 +191,8 @@ class MinjuPipelineBridge:
 
         if facility.get("cookingFire") is True and "manufacturing_or_simple_sale" not in case["slots"]:
             set_slot(case, "manufacturing_or_simple_sale", "cook", "매장 조리", "AI 추출 조리·제조 방식")
+        if facility.get("lpgUse") is True:
+            append_condition(case, "lpg_use")
         if facility.get("seating") is True and "on_site_consumption" not in case["slots"]:
             set_slot(case, "on_site_consumption", True, "매장 취식 가능", "AI 추출 매장 취식 여부")
         if facility.get("takeoutOnly") is True and "on_site_consumption" not in case["slots"]:

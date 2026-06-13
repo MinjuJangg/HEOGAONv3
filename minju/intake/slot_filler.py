@@ -237,6 +237,7 @@ def normalize_gms_contract(contract: dict[str, Any]) -> dict[str, Any]:
     facility["outdoorTableCount"] = int_or_none(facility.get("outdoorTableCount"))
     facility["delivery"] = enum_value(facility.get("delivery"), TRI_STATE, "unknown")
     facility["cookingFire"] = enum_value(facility.get("cookingFire"), TRI_STATE, "unknown")
+    facility["lpgUse"] = enum_value(facility.get("lpgUse"), TRI_STATE, "unknown")
     facility["seating"] = enum_value(facility.get("seating"), TRI_STATE, "unknown")
     facility["takeoutOnly"] = enum_value(facility.get("takeoutOnly"), TRI_STATE, "unknown")
 
@@ -374,7 +375,7 @@ def deterministic_text_overrides(text: str) -> dict[str, Any]:
 
     if any(token in compacted for token in ["카페", "커피숍", "커피샵", "커피", "디저트", "음료"]):
         result["business"]["concept"] = "cafe"
-    elif any(token in compacted for token in ["음식점", "식당", "레스토랑", "분식"]):
+    elif any(token in compacted for token in ["음식점", "식당", "레스토랑", "분식", "고깃집", "고기집", "삼겹살"]):
         result["business"]["concept"] = "restaurant"
     elif any(token in compacted for token in ["베이커리", "빵집", "제과"]):
         result["business"]["concept"] = "bakery"
@@ -419,6 +420,14 @@ def deterministic_text_overrides(text: str) -> dict[str, Any]:
         result["facility"]["outdoorSpace"] = "yes"
     if any(token in compacted for token in ["외부공간없", "테라스없", "외부좌석없"]):
         result["facility"]["outdoorSpace"] = "no"
+
+    lpg_negative = re.search(r"(LPG|LP가스|액화석유가스|가스|화구|숯불)[^.\n]*(안\s*쓰|쓰지\s*않|사용\s*안|사용하지\s*않|없|미사용)", cleaned, re.IGNORECASE)
+    lpg_positive = re.search(r"(LPG|LP\s*가스|액화석유가스|가스\s*화구|가스버너|가스레인지|가스렌지|화구|숯불)", cleaned, re.IGNORECASE)
+    if lpg_negative:
+        result["facility"]["lpgUse"] = "no"
+    elif lpg_positive:
+        result["facility"]["lpgUse"] = "yes"
+        result["facility"]["cookingFire"] = "yes"
 
     if re.search(r"(건물주|소유자|관리인).{0,10}(동의|승낙).{0,10}(받|완료|있)", cleaned):
         result["propertyRights"]["managerConsentKnown"] = "yes"
@@ -777,6 +786,11 @@ def extract_facility(text: str) -> dict[str, str]:
         "outdoorTableCount": int(table_match.group(1)) if table_match else None,
         "delivery": tri_state_from_keywords(text, ["배달", "포장", "테이크아웃"], ["배달안", "포장안"]),
         "cookingFire": tri_state_from_keywords(text, ["조리", "주방", "가스", "불사용", "튀김"], ["조리안", "불사용안"]),
+        "lpgUse": tri_state_from_keywords(
+            text,
+            ["LPG", "LP가스", "액화석유가스", "가스화구", "가스 화구", "가스버너", "가스레인지", "가스렌지", "화구", "숯불"],
+            ["LPG안", "가스안", "가스사용안", "가스사용하지않", "가스없", "화구없"],
+        ),
         "seating": tri_state_from_keywords(text, ["좌석", "홀", "테이블"], ["좌석없", "테이크아웃만", "포장만"]),
         "takeoutOnly": tri_state_from_keywords(text, ["테이크아웃만", "포장만"], ["좌석", "홀", "테이블"]),
     }
@@ -854,6 +868,8 @@ def build_evidence(text: str, contract: dict[str, Any]) -> list[dict[str, str]]:
         evidence.append({"slot": "facility.signboard", "text": "간판", "interpretation": "간판 설치 예정"})
     if slots["facility"]["outdoorSpace"] == "yes":
         evidence.append({"slot": "facility.outdoorSpace", "text": "가게 앞/외부 테이블", "interpretation": "외부 공간 사용 예정"})
+    if slots["facility"].get("lpgUse") == "yes":
+        evidence.append({"slot": "facility.lpgUse", "text": "LPG/가스/화구", "interpretation": "가스 사용시설 완성검사 대상 여부 확인 필요"})
     return evidence
 
 
@@ -907,7 +923,7 @@ def gms_slot_fill(user_text: str) -> dict[str, Any]:
         system_prompt=prompt_payload["system"],
         user_payload=prompt_payload["user"],
         temperature=0.0,
-        max_output_tokens=1800,
+        max_output_tokens=3600,
         timeout=60,
     )
     contract.pop("_gmsMeta", None)
@@ -1020,6 +1036,7 @@ def contract_to_pipeline_slots(contract: dict[str, Any], original_text: str) -> 
             "outdoorTableCount": facility.get("outdoorTableCount"),
             "delivery": tri_to_bool(facility["delivery"]),
             "cookingFire": tri_to_bool(facility["cookingFire"]),
+            "lpgUse": tri_to_bool(facility.get("lpgUse")),
             "seating": tri_to_bool(facility["seating"]),
             "takeoutOnly": tri_to_bool(facility["takeoutOnly"]),
         },

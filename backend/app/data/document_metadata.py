@@ -46,6 +46,14 @@ DOCUMENT_METADATA: list[dict[str, Any]] = [
         "dependencyNote": "대상 시설이면 영업신고증 발급 전에 먼저 필요해요.",
     },
     {
+        "tokens": ["액화석유가스", "LPG", "가스완성", "완성검사"],
+        "issuer": "한국가스안전공사 또는 가스 사용시설 검사기관",
+        "submitTo": "관할 구청 위생과 영업신고 접수 창구",
+        "submissionPhase": "LPG 등 가스 사용시설 완성검사 대상이면 영업신고 전",
+        "blockingPrerequisites": ["가스 배관/화구 시공 완료", "검사 신청", "완성검사 합격"],
+        "dependencyNote": "LPG 등 가스 사용시설이면 영업신고 전 확인 또는 행정정보 공동이용 확인 대상이 될 수 있어요.",
+    },
+    {
         "tokens": ["영업신고서", "식품 영업 신고서"],
         "issuer": "신청인이 작성",
         "submitTo": "관할 구청 위생과",

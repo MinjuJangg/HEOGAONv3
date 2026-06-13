@@ -18,6 +18,12 @@ DOCUMENTS: dict[str, dict[str, Any]] = {
         "category": "conditional_fire",
         "conditionText": "지하 66㎡ 이상 또는 지상 2층 이상 100㎡ 이상인 경우",
     },
+    "lpg_completion_certificate": {
+        "label": "액화석유가스 사용시설완성검사증명서",
+        "stage": "before_business_report",
+        "category": "conditional_lpg",
+        "conditionText": "LPG 등 액화석유가스 사용시설의 완성검사 대상인 경우",
+    },
     "business_registration": {"label": "사업자등록증", "stage": "after_business_report", "category": "business_registration"},
     "signboard_application": {"label": "옥외광고물 표시허가 신청서 또는 신고서", "stage": "before_or_during_opening", "category": "signboard"},
     "signboard_owner_consent": {"label": "건물/대지 사용 승낙서", "stage": "before_or_during_opening", "category": "signboard"},
@@ -34,6 +40,7 @@ DEPARTMENTS: dict[str, dict[str, str]] = {
     "building": {"label": "건축과 또는 건축물대장 담당"},
     "signboard": {"label": "옥외광고물/도시경관 담당"},
     "road_occupancy": {"label": "도로관리/건설관리 담당"},
+    "fire_safety": {"label": "관할 소방서 또는 가스안전 검사 담당"},
 }
 
 
@@ -47,6 +54,7 @@ ACTION_REQUIREMENTS: dict[str, dict[str, Any]] = {
             "lease_contract",
             "id_card",
             "fire_safety_certificate",
+            "lpg_completion_certificate",
             "business_registration",
         ],
         "departments": ["food_hygiene"],
@@ -75,6 +83,12 @@ ACTION_REQUIREMENTS: dict[str, dict[str, Any]] = {
         "documents": ["outdoor_space_materials", "outdoor_owner_consent"],
         "departments": ["road_occupancy"],
         "requiredInputs": ["base_address", "outdoor_location", "outdoor_area", "owner_consent"],
+    },
+    "lpg_facility_completion": {
+        "label": "LPG/가스 사용시설 완성검사",
+        "documents": ["lpg_completion_certificate"],
+        "departments": ["fire_safety"],
+        "requiredInputs": ["base_address", "lpg_use"],
     },
     "document_readiness": {
         "label": "제출 서류 준비상태 점검",
@@ -117,6 +131,7 @@ def infer_action_status(slots: dict[str, Any]) -> dict[str, str]:
         statuses["check_same_place_history"] = "active"
         statuses["install_signboard"] = "active" if facility.get("signboard") is True else "conditional_if_planned"
         statuses["use_outdoor_space"] = "active" if facility.get("outdoorSpace") is True else "conditional_if_planned"
+        statuses["lpg_facility_completion"] = "active" if facility.get("lpgUse") is True else "not_required_now"
         if facility.get("signboard") is False:
             statuses["install_signboard"] = "not_required_now"
         if facility.get("outdoorSpace") is False:
@@ -138,6 +153,8 @@ def infer_action_status(slots: dict[str, Any]) -> dict[str, str]:
             statuses["install_signboard"] = "active"
         if facility.get("outdoorSpace") is True:
             statuses["use_outdoor_space"] = "active"
+        if facility.get("lpgUse") is True:
+            statuses["lpg_facility_completion"] = "active"
 
     return statuses
 
@@ -160,6 +177,7 @@ def slot_presence(slots: dict[str, Any]) -> dict[str, bool]:
         "outdoor_location": facility.get("outdoorLocation") not in (None, "", "unknown"),
         "outdoor_area": bool(facility.get("outdoorAreaText") or facility.get("outdoorTableCount")),
         "owner_consent": property_rights.get("managerConsentKnown") == "yes" or property_rights.get("leaseOrOwnershipStatus") == "owner",
+        "lpg_use": facility.get("lpgUse") is not None,
     }
 
 
@@ -194,9 +212,31 @@ def evaluate_fire_document(slots: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def evaluate_lpg_document(slots: dict[str, Any]) -> dict[str, Any]:
+    doc = DOCUMENTS["lpg_completion_certificate"]
+    facility = slots.get("facility", {})
+    lpg_use = facility.get("lpgUse")
+    if lpg_use is True:
+        status = "required"
+    elif facility.get("cookingFire") is True:
+        status = "needs_input"
+    else:
+        status = "not_required_by_current_inputs"
+    return {
+        "id": "lpg_completion_certificate",
+        "label": doc["label"],
+        "status": status,
+        "condition": doc["conditionText"],
+        "missingInputs": ["lpg_use"] if status == "needs_input" else [],
+        "stage": doc["stage"],
+    }
+
+
 def evaluate_document(doc_id: str, slots: dict[str, Any], action_status: str) -> dict[str, Any]:
     if doc_id == "fire_safety_certificate":
         item = evaluate_fire_document(slots)
+    elif doc_id == "lpg_completion_certificate":
+        item = evaluate_lpg_document(slots)
     else:
         doc = DOCUMENTS[doc_id]
         status = "later" if doc["stage"] == "after_business_report" else "required"
@@ -260,7 +300,11 @@ def collect_missing_inputs(action_statuses: dict[str, str], slots: dict[str, Any
 
 def document_labels(document_list: list[dict[str, Any]], doc_ids: list[str]) -> list[str]:
     by_id = {item.get("id"): item for item in document_list}
-    return [by_id[doc_id]["label"] for doc_id in doc_ids if doc_id in by_id]
+    return [
+        by_id[doc_id]["label"]
+        for doc_id in doc_ids
+        if doc_id in by_id and by_id[doc_id].get("status") != "not_required_by_current_inputs"
+    ]
 
 
 def active_or_reference(action_statuses: dict[str, str], action_id: str) -> bool:
@@ -323,9 +367,9 @@ def build_procedure_plan(scope: str, action_statuses: dict[str, str], document_l
             "영업신고 전 필수서류 준비",
             "영업신고 접수 전",
             ["open_food_business"],
-            ["hygiene_training", "health_certificate", "lease_contract", "id_card", "fire_safety_certificate"],
+            ["hygiene_training", "health_certificate", "lease_contract", "id_card", "fire_safety_certificate", "lpg_completion_certificate"],
             ["위생과/식품위생 담당", "관할 소방서"],
-            notes=["소방완비증명서는 지하 66㎡ 이상 또는 지상 2층 100㎡ 이상 등 조건에 따라 필요합니다."],
+            notes=["소방완비증명서는 지하 66㎡ 이상 또는 지상 2층 100㎡ 이상 등 조건에 따라 필요합니다.", "LPG 등 가스 사용시설이면 완성검사증명서 대상 여부를 함께 확인합니다."],
         )
         if active_or_conditional(action_statuses, "install_signboard"):
             add(

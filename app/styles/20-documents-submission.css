@@ -116,6 +116,58 @@
         line-height: 1;
       }
 
+      .document-track-list {
+        display: grid;
+        gap: 18px;
+      }
+
+      .document-track-group {
+        display: grid;
+        gap: 8px;
+        padding-top: 12px;
+        border-top: 1px solid #dce5f0;
+      }
+
+      .document-track-group:first-child {
+        padding-top: 0;
+        border-top: 0;
+      }
+
+      .document-track-head {
+        display: grid;
+        gap: 4px;
+        padding-left: 40px;
+      }
+
+      .document-track-step {
+        width: fit-content;
+        border-radius: 999px;
+        background: var(--primary-soft);
+        color: var(--primary);
+        padding: 4px 8px;
+        font-size: 11px;
+        font-weight: 780;
+        line-height: 1;
+      }
+
+      .document-track-title {
+        margin: 0;
+        color: var(--text);
+        font-size: 15px;
+        font-weight: 820;
+        line-height: 1.35;
+        word-break: keep-all;
+      }
+
+      .document-track-desc {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 560;
+        line-height: 1.45;
+        word-break: keep-all;
+      }
+
       .document-prep-list {
         margin: 0;
         padding: 0;
@@ -714,12 +766,37 @@
       }
 
       .document-detail-meta-text,
+      .document-detail-meta-link,
       .document-detail-note {
         color: #526176;
         font-size: 13px;
         font-weight: 650;
         line-height: 1.48;
         word-break: keep-all;
+      }
+
+      .document-detail-meta-link {
+        display: grid;
+        gap: 5px;
+        color: #526176;
+        text-decoration: none;
+      }
+
+      .document-detail-meta-link-action {
+        width: fit-content;
+        min-height: 26px;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        color: var(--primary);
+        font-size: 12px;
+        font-weight: 820;
+        line-height: 1;
+      }
+
+      .document-detail-meta-link-action svg {
+        width: 14px;
+        height: 14px;
       }
 
       .document-detail-note {

@@ -24,7 +24,7 @@ SLOT_FILLER_SYSTEM_PROMPT = """
 4. 주류 판매 여부는 핵심 분기 조건이므로 반드시 yes/no/unknown 중 하나로 둔다.
 5. 면적은 평/㎡를 모두 인식하고, 가능하면 둘 다 채운다.
 6. 사용자가 카페라고 쓰지 않아도 커피숍, 커피샵, 디저트 가게, 브런치 매장, 테이크아웃 커피 전문점처럼 의미가 같으면 concept=cafe로 정규화한다.
-7. 층/지하 여부, 간판, 외부공간, 조리, 배달, 좌석 여부를 분리한다.
+7. 층/지하 여부, 간판, 외부공간, 조리, 배달, 좌석, LPG/가스 화구 사용 여부를 분리한다.
 8. 임대차/소유자/관리인 권한과 기존 업소 인수 여부는 모르면 unknown으로 둔다.
 9. candidateBusinessTypes와 missingCandidates는 제안값이다. 최종 후보/부족정보 분류는 백엔드 정책 룰이 다시 계산한다.
 10. 각 핵심 슬롯은 근거가 된 원문 조각(evidence)을 함께 남긴다.
@@ -137,6 +137,7 @@ SLOT_FILLER_JSON_SCHEMA: dict[str, Any] = {
                         "outdoorTableCount",
                         "delivery",
                         "cookingFire",
+                        "lpgUse",
                         "seating",
                         "takeoutOnly",
                     ],
@@ -150,6 +151,7 @@ SLOT_FILLER_JSON_SCHEMA: dict[str, Any] = {
                         "outdoorTableCount": {"type": ["integer", "null"]},
                         "delivery": {"type": "string", "enum": TRI_STATE},
                         "cookingFire": {"type": "string", "enum": TRI_STATE},
+                        "lpgUse": {"type": "string", "enum": TRI_STATE},
                         "seating": {"type": "string", "enum": TRI_STATE},
                         "takeoutOnly": {"type": "string", "enum": TRI_STATE},
                     },
@@ -279,6 +281,7 @@ COMPACT_SLOT_OUTPUT_CONTRACT: dict[str, Any] = {
             "outdoorTableCount": "integer|null",
             "delivery": TRI_STATE,
             "cookingFire": TRI_STATE,
+            "lpgUse": TRI_STATE,
             "seating": TRI_STATE,
             "takeoutOnly": TRI_STATE,
         },
@@ -361,6 +364,7 @@ def sample_output() -> dict[str, Any]:
                 "outdoorTableCount": None,
                 "delivery": "unknown",
                 "cookingFire": "unknown",
+                "lpgUse": "unknown",
                 "seating": "unknown",
                 "takeoutOnly": "unknown",
             },

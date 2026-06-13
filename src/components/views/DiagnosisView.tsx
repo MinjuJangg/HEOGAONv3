@@ -8,7 +8,6 @@ export function DiagnosisView({ view }: { view: DiagnosisViewModel }) {
   const questionsToAsk = guidance?.questionsToAsk ?? [];
   const procedureSteps = guidance?.procedureSteps ?? [];
   const documentOrderItems = guidance?.documentOrderItems ?? [];
-  const departmentItems = guidance?.departmentItems ?? [];
   const hasGuidance = Boolean(
     guidance
     && (
@@ -41,9 +40,6 @@ export function DiagnosisView({ view }: { view: DiagnosisViewModel }) {
         ) : null}
         {documentOrderItems.length ? (
           <ListCard title="서류 준비 순서" icon="fileCheck" items={documentOrderItems} />
-        ) : null}
-        {departmentItems.length ? (
-          <ListCard title="문의할 부서" icon="message" items={departmentItems} />
         ) : null}
         {view.decisionBlocks.map((block) => (
           <DecisionBlockView block={block} key={`${block.type}-${block.title}`} />

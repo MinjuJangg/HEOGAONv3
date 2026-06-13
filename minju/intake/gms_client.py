@@ -14,7 +14,7 @@ from typing import Any
 
 
 DEFAULT_GMS_BASE_URL = "https://gms.ssafy.io/gmsapi/api.openai.com/v1"
-DEFAULT_GMS_MODEL = "gpt-4.1"
+DEFAULT_GMS_MODEL = "gpt-5.5"
 
 
 class GMSProviderUnavailable(RuntimeError):
@@ -44,8 +44,8 @@ def gms_config() -> dict[str, Any]:
     api_key = os.getenv("HEOGAON_GMS_API_KEY") or os.getenv("GMS_API_KEY") or ""
     model = normalize_model_name(os.getenv("HEOGAON_GMS_MODEL") or os.getenv("GMS_MODEL") or os.getenv("HEOGAON_AI_MODEL"))
     base_url = os.getenv("HEOGAON_GMS_BASE_URL") or os.getenv("GMS_BASE_URL") or DEFAULT_GMS_BASE_URL
-    max_output_tokens = int(os.getenv("GMS_MAX_OUTPUT_TOKENS") or os.getenv("HEOGAON_GMS_MAX_OUTPUT_TOKENS") or "3000")
-    reasoning_effort = os.getenv("GMS_REASONING_EFFORT") or os.getenv("HEOGAON_GMS_REASONING_EFFORT") or "minimal"
+    max_output_tokens = int(os.getenv("GMS_MAX_OUTPUT_TOKENS") or os.getenv("HEOGAON_GMS_MAX_OUTPUT_TOKENS") or "6000")
+    reasoning_effort = os.getenv("GMS_REASONING_EFFORT") or os.getenv("HEOGAON_GMS_REASONING_EFFORT") or "low"
     return {
         "apiKey": api_key,
         "model": model,

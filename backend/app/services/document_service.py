@@ -177,9 +177,9 @@ class DocumentService:
         judgement_docs = ((summary.get("aiJudgement") or {}).get("documentSummary") or {})
         graph_docs = ((summary.get("requirementGraph") or {}).get("documentPlan") or {})
         buckets: list[tuple[str, list[Any]]] = [
-            ("required", judgement_docs.get("required") or self._labels(graph_docs.get("requiredForSubmission"))),
-            ("conditional", judgement_docs.get("conditional") or self._labels(graph_docs.get("conditional"))),
-            ("later", judgement_docs.get("later") or self._labels(graph_docs.get("later"))),
+            ("required", self.unique_labels([*(judgement_docs.get("required") or []), *self._labels(graph_docs.get("requiredForSubmission"))])),
+            ("conditional", self.unique_labels([*(judgement_docs.get("conditional") or []), *self._labels(graph_docs.get("conditional"))])),
+            ("later", self.unique_labels([*(judgement_docs.get("later") or []), *self._labels(graph_docs.get("later"))])),
         ]
 
         documents: list[dict[str, Any]] = []
@@ -210,6 +210,8 @@ class DocumentService:
             ("식품접객업 영업신고증", "required", "영업신고"),
             ("사업자등록증", "later", "사업자등록"),
         ]
+        if self.has_lpg_signal(case):
+            base_sequence.insert(5, ("액화석유가스 사용시설완성검사증명서", "required", "액화석유"))
 
         merged: list[dict[str, Any]] = []
         for title, bucket, token in base_sequence:
@@ -222,6 +224,31 @@ class DocumentService:
         for index, document in enumerate(merged, start=1):
             document["priority"] = index
         return merged
+
+    @classmethod
+    def unique_labels(cls, labels: list[Any]) -> list[str]:
+        result: list[str] = []
+        seen: set[str] = set()
+        for label in labels:
+            title = cls.display_title(str(label or ""))
+            key = cls.normalized_title(title)
+            if not title or not key or key in seen:
+                continue
+            seen.add(key)
+            result.append(title)
+        return result
+
+    @staticmethod
+    def has_lpg_signal(case: dict[str, Any]) -> bool:
+        conditions = set(str(item) for item in as_list(slot_value(case, "condition_screening")))
+        if "lpg_use" in conditions:
+            return True
+        summary = ((case.get("minjuIntake") or {}).get("summary") or {}) or ((case.get("minjuDraft") or {}).get("summary") or {})
+        facility = ((summary.get("slots") or {}).get("facility") or {})
+        if facility.get("lpgUse") is True:
+            return True
+        text = f"{case.get('rawInput') or ''} {slot_value(case, 'business_activity') or ''}"
+        return bool(re.search(r"\bLPG\b|LP\s*가스|액화석유가스|가스\s*화구|가스버너|가스레인지|가스렌지|화구|숯불", text, re.IGNORECASE))
 
     @classmethod
     def documents_for_scope(cls, case: dict[str, Any], documents: list[dict[str, Any]]) -> list[dict[str, Any]]:

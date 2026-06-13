@@ -255,6 +255,11 @@ def extract_facility_flags(text: str) -> dict[str, Any]:
         ),
         "delivery": as_bool_from_keywords(text, ["배달", "포장", "테이크아웃"], ["배달안", "포장안"]),
         "cookingFire": as_bool_from_keywords(text, ["조리", "주방", "가스", "불사용", "튀김"], ["조리안", "불사용안"]),
+        "lpgUse": as_bool_from_keywords(
+            text,
+            ["LPG", "LP가스", "액화석유가스", "가스화구", "가스 화구", "가스버너", "가스레인지", "가스렌지", "화구", "숯불"],
+            ["LPG안", "가스안", "가스사용안", "가스사용하지않", "가스없", "화구없"],
+        ),
     }
 
 

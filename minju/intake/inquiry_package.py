@@ -559,7 +559,7 @@ def gms_scripts(result: dict[str, Any], contacts: list[dict[str, Any]], check_it
         system_prompt=prompt["system"],
         user_payload=prompt["user"],
         temperature=0.2,
-        max_output_tokens=1800,
+        max_output_tokens=3600,
         timeout=60,
     )
     parsed.pop("_gmsMeta", None)

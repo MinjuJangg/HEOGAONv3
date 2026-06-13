@@ -87,7 +87,7 @@ class Settings:
             llm_provider=os.getenv("LLM_PROVIDER", "gms"),
             llm_api_key=os.getenv("LLM_API_KEY", os.getenv("GMS_API_KEY", os.getenv("GMS_KEY", ""))),
             llm_base_url=os.getenv("LLM_BASE_URL", os.getenv("GMS_BASE_URL", DEFAULT_GMS_LLM_BASE_URL)).rstrip("/"),
-            llm_model=os.getenv("LLM_MODEL", os.getenv("GMS_MODEL", "gpt-4.1")),
+            llm_model=os.getenv("LLM_MODEL", os.getenv("GMS_MODEL", "gpt-5.5")),
             llm_timeout_seconds=float(os.getenv("LLM_TIMEOUT_SECONDS", "12")),
             llm_reasoning_effort=_gms_reasoning_effort(),
             llm_max_output_tokens=_env_int("LLM_MAX_OUTPUT_TOKENS", "GMS_MAX_OUTPUT_TOKENS"),
