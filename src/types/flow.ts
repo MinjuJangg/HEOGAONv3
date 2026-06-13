@@ -174,6 +174,32 @@ export interface DocumentItem {
   trackDescription?: string;
   phase?: number;
   phaseTitle?: string;
+  writingGuide?: DocumentWritingGuide;
+}
+
+export interface DocumentWritingGuide {
+  title: string;
+  intro: string;
+  applyUrl?: string;
+  applyLabel?: string;
+  sections: DocumentWritingGuideSection[];
+  attachments?: string[];
+  footnote?: string;
+}
+
+export interface DocumentWritingGuideSection {
+  title: string;
+  type: "select" | "fill";
+  items: DocumentWritingGuideItem[];
+}
+
+export interface DocumentWritingGuideItem {
+  label: string;
+  group?: string;
+  choose?: string;
+  value?: string;
+  filled?: boolean;
+  hint?: string;
 }
 
 export interface DashboardView {

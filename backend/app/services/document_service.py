@@ -6,6 +6,7 @@ from typing import Any
 from app.data.catalog import DOCUMENT_PRIORITY_RULES
 from app.data.document_metadata import document_metadata_for
 from app.services.document_directory import lookup_document_directory, split_summary, unique_links
+from app.services.document_writing_guide import build_writing_guide
 from app.services.graph_rag_service import GraphRagService, graph_rag_service
 from app.services.slot_utils import as_list, slot_value
 
@@ -140,6 +141,10 @@ class DocumentService:
             *(merged.get("officialLinks") or []),
             *(directory.get("officialLinks") or []),
         ]) or [{"label": "정부24에서 확인", "url": "https://www.gov.kr"}]
+
+        writing_guide = build_writing_guide(case, title)
+        if writing_guide:
+            merged["writingGuide"] = writing_guide
         return merged
 
     @classmethod
