@@ -38,7 +38,7 @@ export function UnderstandingReviewView({ view }: {
           {view.suitabilitySummary ? <p className="summary-review-subtitle">{view.suitabilitySummary}</p> : null}
         </section>
 
-        {view.apiItems.length ? <ListBlock title="확인된 근거" icon="search" items={view.apiItems} /> : null}
+        {view.apiItems.length ? <ListBlock title="확인된 근거" icon="fileCheck" items={view.apiItems} /> : null}
         {view.buildingItems.length ? <ListBlock title="건축물대장 요약" icon="building2" items={view.buildingItems} /> : null}
 
       </div>

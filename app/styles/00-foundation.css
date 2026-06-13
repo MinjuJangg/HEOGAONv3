@@ -402,39 +402,6 @@
         opacity: 0.24;
       }
 
-      .landing-examples {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-top: 14px;
-        justify-content: center;
-      }
-
-      .landing-example-chip {
-        min-height: 40px;
-        padding: 0 14px;
-        border-radius: var(--radius-full);
-        border: 1px solid var(--line);
-        background: var(--surface);
-        color: var(--text-secondary);
-        font-size: 13px;
-        font-weight: 640;
-        transition: border-color var(--duration-fast) var(--ease-smooth),
-                    background var(--duration-fast) var(--ease-smooth),
-                    color var(--duration-fast) var(--ease-smooth),
-                    transform var(--duration-fast) var(--ease-smooth);
-      }
-
-      .landing-example-chip:hover {
-        border-color: rgba(49, 130, 246, 0.4);
-        background: var(--primary-soft);
-        color: var(--primary);
-      }
-
-      .landing-example-chip:active {
-        transform: scale(0.97);
-      }
-
       .send-button {
         width: 44px;
         height: 44px;

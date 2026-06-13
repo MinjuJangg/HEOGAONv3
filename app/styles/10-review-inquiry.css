@@ -861,12 +861,23 @@
         height: 17px;
       }
 
-      /* 중복 아이콘 제거: 섹션(중제목)끼리 같은 아이콘이 반복되고, 그 아이콘이
-         항목(소제목)에서도 동일하게 반복돼 세로로 겹쳐 보이는 문제를 해결.
-         장식용 leading 아이콘만 숨기고 텍스트 위계는 그대로 둔다. */
-      .summary-review-title-row > span[aria-hidden="true"],
+      /* 중복 아이콘 정리: 항목(소제목)은 섹션 아이콘과 같은 글리프를 반복해
+         세로로 겹쳐 보였으므로 제거하고, 섹션(중제목) 아이콘은 살리되
+         tinted 배지로 다듬어 "레벨당 의도적인 아이콘 하나"만 남긴다. */
       .missing-summary-icon {
         display: none;
+      }
+
+      .summary-review-title-row > span[aria-hidden="true"] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 9px;
+        background: var(--primary-soft);
+        color: var(--primary);
+        flex: 0 0 auto;
       }
 
       .missing-summary-empty {
