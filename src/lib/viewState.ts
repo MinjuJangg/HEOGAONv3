@@ -1,0 +1,59 @@
+import type { ApiView } from "@/types/flow";
+
+export function primaryActionState(
+  view: ApiView,
+  selectedIds: string[],
+  freeText: string,
+  consultationText: string,
+  pending: boolean,
+  _completedDocumentIds: string[] = [],
+) {
+  if (view.type === "inquiry" && view.mode === "channels") return null;
+
+  let label = "다음";
+  let disabled = pending;
+
+  if (view.type === "slot_question") {
+    label = view.nextButtonLabel;
+    disabled = pending || (view.inputMode === "free_text" ? freeText.trim().length < 1 : selectedIds.length === 0);
+  } else if (view.type === "documents") {
+    label = view.nextButtonLabel;
+    disabled = pending;
+  } else if (view.type === "inquiry") {
+    label = "답변 저장하기";
+    disabled = pending || consultationText.trim().length < 2;
+  } else {
+    label = view.nextButtonLabel;
+  }
+
+  return { label: pending ? "처리 중" : label, disabled };
+}
+
+export function progressFor(stage: string) {
+  const stages = [
+    { key: "intake", label: "정보 수집" },
+    { key: "diagnosis", label: "확인 결과" },
+    { key: "documents", label: "서류" },
+    { key: "inquiry", label: "문의" },
+    { key: "dashboard", label: "진행 상황" },
+    { key: "submitted", label: "제출 완료" },
+  ];
+  const order = stages.map((item) => item.key);
+  const labels: Record<string, string> = {
+    intake: "정보 수집",
+    diagnosis: "확인 결과",
+    documents: "서류",
+    inquiry: "문의",
+    dashboard: "진행 상황",
+    submitted: "제출 완료",
+  };
+  const index = Math.max(0, order.indexOf(stage));
+
+  return {
+    width: `${Math.min(100, ((index + 1) / order.length) * 100)}%`,
+    label: labels[stage] || "정보 수집",
+    current: index + 1,
+    total: stages.length,
+    stages,
+  };
+}
