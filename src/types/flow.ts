@@ -159,6 +159,7 @@ export interface DocumentItem {
   issuer?: string;
   issuerUrl?: string;
   issuerLinkLabel?: string;
+  issuerNote?: string;
   submitTo?: string;
   submitUrl?: string;
   submitLinkLabel?: string;

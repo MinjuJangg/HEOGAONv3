@@ -10,6 +10,37 @@ from app.services.graph_rag_service import GraphRagService, graph_rag_service
 from app.services.slot_utils import as_list, slot_value
 
 
+# 서류별 정식 발급처 링크 오버라이드.
+# DB(source_url)에는 법령 근거(easylaw 등) 링크가 섞여 있어, 실제 신청/발급
+# 포털로 덮어쓴다. tokens 중 하나라도 제목에 포함되면 적용한다.
+# - url/label: 발급처 링크와 표시 텍스트
+# - note(선택): 랜딩 페이지에서 추가 조작이 필요할 때 보여줄 안내 문구
+# 정부24에서 발급/신청 가능한 서류는 해당 민원의 정부24 딥링크로 연결한다.
+ISSUER_LINK_OVERRIDES: list[dict[str, Any]] = [
+    {
+        "tokens": ("위생교육",),
+        "url": "https://www.foodservice.or.kr/",
+        "label": "위생교육신청 바로가기",
+        "note": "페이지에서 '위생교육 수료증 발급' 메뉴를 찾아 클릭하면 돼요.",
+    },
+    {
+        "tokens": ("건강진단",),
+        "url": "https://www.gov.kr/portal/service/serviceInfo/135200000129",
+        "label": "정부24 건강진단결과서 발급",
+    },
+    {
+        "tokens": ("영업신고",),
+        "url": "https://www.gov.kr/mw/AA020InfoCappView.do?CappBizCD=14600000021&HighCtgCD=A09006&tp_seq=02",
+        "label": "정부24 식품영업신고",
+    },
+    {
+        "tokens": ("옥외광고",),
+        "url": "https://www.gov.kr/mw/AA020InfoCappView.do?CappBizCD=13100000152&HighCtgCD=A09006",
+        "label": "정부24 옥외광고물 신고",
+    },
+]
+
+
 class DocumentService:
     def __init__(self, graph_rag: GraphRagService = graph_rag_service) -> None:
         self.graph_rag = graph_rag
@@ -76,6 +107,14 @@ class DocumentService:
         merged["issueChannel"] = directory.get("issueChannel") or ""
         merged["issuerUrl"] = directory.get("issuerUrl") or ""
         merged["issuerLinkLabel"] = directory.get("issuerLinkLabel") or ""
+        merged["issuerNote"] = ""
+        override_key = DocumentService.normalized_title(title)
+        for override in ISSUER_LINK_OVERRIDES:
+            if any(DocumentService.normalized_title(token) in override_key for token in override["tokens"]):
+                merged["issuerUrl"] = override["url"]
+                merged["issuerLinkLabel"] = override["label"]
+                merged["issuerNote"] = override.get("note") or ""
+                break
         merged["submitUrl"] = directory.get("submitUrl") or ""
         merged["submitLinkLabel"] = directory.get("submitLinkLabel") or ""
 

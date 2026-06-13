@@ -799,6 +799,18 @@
         height: 14px;
       }
 
+      .document-detail-meta-note {
+        margin-top: 2px;
+        padding: 7px 9px;
+        border-radius: 9px;
+        background: #eef4ff;
+        color: #3a4a63;
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 1.45;
+        word-break: keep-all;
+      }
+
       .document-detail-note {
         margin: 0;
         padding: 11px 12px;

@@ -1,21 +1,33 @@
+import hmac
 import json
 import os
 from typing import Any
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from app.core.config import settings
 from app.flow import CASES, apply_turn, create_case, envelope
+from app.services import admin_service
 from app.services.flow_service import FlowInputError
 
 
 class TurnRequest(BaseModel):
     input: dict[str, Any]
     clientState: dict[str, Any] | None = None
+
+
+class RowPayload(BaseModel):
+    values: dict[str, Any]
+
+
+def require_admin(x_admin_password: str | None = Header(default=None)) -> None:
+    expected = settings.admin_password
+    if not x_admin_password or not hmac.compare_digest(str(x_admin_password), str(expected)):
+        raise HTTPException(status_code=401, detail="관리자 인증에 실패했습니다.")
 
 
 app = FastAPI(title="Heogaon Flow V2", version="0.1.0")
@@ -182,3 +194,55 @@ def get_case_endpoint(case_id: str):
     if not case:
         raise HTTPException(status_code=404, detail="case를 찾을 수 없습니다.")
     return envelope(case)
+
+
+# --- Admin: 문서 링크 DB 관리 -------------------------------------------------
+
+
+@app.post("/api/admin/login")
+def admin_login(_: None = Depends(require_admin)):
+    return {"ok": True}
+
+
+@app.get("/api/admin/tables")
+def admin_list_tables(_: None = Depends(require_admin)):
+    return {"tables": admin_service.list_tables()}
+
+
+@app.get("/api/admin/tables/{table}/rows")
+def admin_list_rows(
+    table: str,
+    search: str = "",
+    limit: int = 50,
+    offset: int = 0,
+    _: None = Depends(require_admin),
+):
+    try:
+        return admin_service.list_rows(table, search=search, limit=limit, offset=offset)
+    except admin_service.AdminError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.put("/api/admin/tables/{table}/rows/{rowid}")
+def admin_update_row(table: str, rowid: int, payload: RowPayload, _: None = Depends(require_admin)):
+    try:
+        return {"row": admin_service.update_row(table, rowid, payload.values)}
+    except admin_service.AdminError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/admin/tables/{table}/rows")
+def admin_insert_row(table: str, payload: RowPayload, _: None = Depends(require_admin)):
+    try:
+        return {"row": admin_service.insert_row(table, payload.values)}
+    except admin_service.AdminError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.delete("/api/admin/tables/{table}/rows/{rowid}")
+def admin_delete_row(table: str, rowid: int, _: None = Depends(require_admin)):
+    try:
+        admin_service.delete_row(table, rowid)
+        return {"ok": True}
+    except admin_service.AdminError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc

@@ -236,6 +236,7 @@ function DocumentDetail({
             value={document.issuer || "해당 발급기관 확인 필요"}
             url={document.issuerUrl}
             linkLabel={document.issuerLinkLabel}
+            note={document.issuerNote}
           />
           <DetailMetaCard
             label="제출처"
@@ -291,11 +292,13 @@ function DetailMetaCard({
   value,
   url,
   linkLabel,
+  note,
 }: {
   label: string;
   value: string;
   url?: string;
   linkLabel?: string;
+  note?: string;
 }) {
   return (
     <div className="document-detail-meta-card">
@@ -308,6 +311,7 @@ function DetailMetaCard({
       ) : (
         <span className="document-detail-meta-text">{value}</span>
       )}
+      {note ? <span className="document-detail-meta-note">{note}</span> : null}
     </div>
   );
 }
