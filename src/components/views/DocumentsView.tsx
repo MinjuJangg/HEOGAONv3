@@ -76,7 +76,6 @@ export function DocumentsView({
               {trackGroups.map((group) => (
                 <section className="document-track-group" key={group.id}>
                   <div className="document-track-head">
-                    <span className="document-track-step">{group.phaseTitle}</span>
                     <h4 className="document-track-title">{group.title}</h4>
                     {group.description ? <p className="document-track-desc">{group.description}</p> : null}
                   </div>
@@ -99,7 +98,7 @@ export function DocumentsView({
                               <span className="document-timeline-title">{document.title}</span>
                               {current ? <span className="document-timeline-badge">지금 작성</span> : null}
                             </span>
-                            <span className="document-timeline-meta">{document.phaseTitle || group.phaseTitle} · 예상 소요 {document.perceivedDuration}</span>
+                            <span className="document-timeline-meta">예상 소요 {document.perceivedDuration}</span>
                             {locked ? (
                               <span className="document-timeline-lock">{blockingTitles.join(" · ")} 완료 후 작성할 수 있어요</span>
                             ) : (
