@@ -1,0 +1,863 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>허가온 시나리오 그래프 시연</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f8fb;
+      --surface: #ffffff;
+      --line: #d9dee8;
+      --text: #141823;
+      --muted: #647084;
+      --strong: #0f172a;
+      --blue: #2563eb;
+      --orange: #f97316;
+      --green: #16a34a;
+      --purple: #a855f7;
+      --pink: #e11d48;
+      --teal: #0891b2;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      letter-spacing: 0;
+    }
+
+    button, input {
+      font: inherit;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 310px minmax(520px, 1fr) 390px;
+      min-height: 100vh;
+    }
+
+    .sidebar, .detail {
+      background: var(--surface);
+      border-color: var(--line);
+      overflow: auto;
+      min-height: 100vh;
+      max-height: 100vh;
+    }
+
+    .sidebar {
+      border-right: 1px solid var(--line);
+      padding: 18px 14px;
+    }
+
+    .detail {
+      border-left: 1px solid var(--line);
+      padding: 18px 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.2;
+      color: var(--strong);
+    }
+
+    .brand span {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .meta {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin: 12px 0 16px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px 8px;
+      background: #fbfcff;
+    }
+
+    .metric b {
+      display: block;
+      font-size: 17px;
+      color: var(--strong);
+      line-height: 1.1;
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 3px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .scenario-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .scenario-button {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 10px 11px;
+      text-align: left;
+      cursor: pointer;
+      transition: border-color .16s, background .16s, transform .16s;
+    }
+
+    .scenario-button:hover {
+      border-color: #9fb5e8;
+      background: #f7faff;
+    }
+
+    .scenario-button.active {
+      border-color: var(--blue);
+      background: #eef4ff;
+    }
+
+    .scenario-button strong {
+      display: block;
+      font-size: 13px;
+      line-height: 1.32;
+      color: var(--strong);
+    }
+
+    .scenario-button span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .stage {
+      min-width: 0;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      min-height: 100vh;
+    }
+
+    .toolbar {
+      min-height: 118px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255,255,255,.92);
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      align-items: start;
+      padding: 14px 18px;
+    }
+
+    .scenario-title {
+      min-width: 0;
+    }
+
+    .scenario-title h2 {
+      margin: 0;
+      font-size: 21px;
+      line-height: 1.25;
+      color: var(--strong);
+    }
+
+    .scenario-title p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+    }
+
+    .tool-button {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--strong);
+      min-height: 36px;
+      padding: 0 12px;
+      cursor: pointer;
+    }
+
+    .tool-button.primary {
+      background: var(--strong);
+      color: #fff;
+      border-color: var(--strong);
+    }
+
+    .opacity {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .opacity input {
+      width: 96px;
+    }
+
+    .canvas-wrap {
+      position: relative;
+      min-height: 0;
+      background:
+        linear-gradient(#eef1f6 1px, transparent 1px),
+        linear-gradient(90deg, #eef1f6 1px, transparent 1px);
+      background-size: 28px 28px;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: grab;
+    }
+
+    canvas.dragging {
+      cursor: grabbing;
+    }
+
+    .legend {
+      border-top: 1px solid var(--line);
+      background: #fff;
+      padding: 9px 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 16px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .section {
+      padding: 14px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section:last-child {
+      border-bottom: 0;
+    }
+
+    .section h3 {
+      margin: 0 0 9px;
+      font-size: 14px;
+      color: var(--strong);
+    }
+
+    .kv {
+      display: grid;
+      grid-template-columns: 92px 1fr;
+      gap: 7px 10px;
+      font-size: 12px;
+    }
+
+    .kv span:nth-child(odd) {
+      color: var(--muted);
+    }
+
+    .kv span:nth-child(even) {
+      color: var(--text);
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .doc-list {
+      display: grid;
+      gap: 7px;
+    }
+
+    .doc-item {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    .doc-item:hover {
+      border-color: #9fb5e8;
+      background: #f8fbff;
+    }
+
+    .doc-item strong {
+      display: block;
+      color: var(--strong);
+      font-size: 12px;
+      line-height: 1.28;
+    }
+
+    .doc-item span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.35;
+      margin-top: 4px;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .pill {
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      padding: 4px 8px;
+      font-size: 11px;
+      color: var(--muted);
+      background: #fff;
+    }
+
+    .evidence-text {
+      color: var(--text);
+      line-height: 1.55;
+      font-size: 13px;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .source-link {
+      color: var(--blue);
+      text-decoration: none;
+      overflow-wrap: anywhere;
+    }
+
+    .source-link:hover {
+      text-decoration: underline;
+    }
+
+    ol.timeline {
+      margin: 0;
+      padding-left: 20px;
+      color: var(--text);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 1180px) {
+      .app {
+        grid-template-columns: 260px minmax(420px, 1fr);
+      }
+      .detail {
+        grid-column: 1 / -1;
+        min-height: 0;
+        max-height: none;
+        border-left: 0;
+        border-top: 1px solid var(--line);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <h1>시나리오 그래프</h1>
+        <span>허가온</span>
+      </div>
+      <div class="meta">
+        <div class="metric"><b id="nodeCount">-</b><span>nodes</span></div>
+        <div class="metric"><b id="edgeCount">-</b><span>edges</span></div>
+        <div class="metric"><b id="scenarioCount">-</b><span>cases</span></div>
+      </div>
+      <div id="scenarioList" class="scenario-list"></div>
+    </aside>
+
+    <main class="stage">
+      <header class="toolbar">
+        <div class="scenario-title">
+          <h2 id="activeTitle">시나리오 선택 중</h2>
+          <p id="activeMeta">PRECEDES 절차 흐름을 중심으로, 필요한 서류와 담당 기능을 붙여 표시합니다.</p>
+        </div>
+        <div class="controls">
+          <label class="opacity">전체 그래프 흐림 <input id="opacitySlider" type="range" min="2" max="20" value="7" /></label>
+          <button id="fitAll" class="tool-button">전체 보기</button>
+          <button id="fitScenario" class="tool-button primary">시나리오 확대</button>
+        </div>
+      </header>
+      <section class="canvas-wrap">
+        <canvas id="graphCanvas"></canvas>
+      </section>
+      <footer id="legend" class="legend"></footer>
+    </main>
+
+    <aside class="detail">
+      <div class="section">
+        <h3>활용된 그래프 부분</h3>
+        <div id="scenarioStats" class="kv"></div>
+      </div>
+      <div class="section">
+        <h3>Evidence</h3>
+        <div id="evidencePanel" class="evidence-text">강조된 edge나 아래 서류 항목을 클릭하면 근거 문장이 표시됩니다.</div>
+      </div>
+      <div class="section">
+        <h3>필수/추가 서류</h3>
+        <div id="docList" class="doc-list"></div>
+      </div>
+      <div class="section">
+        <h3>PRECEDES 진행 순서</h3>
+        <ol id="timeline" class="timeline"></ol>
+      </div>
+      <div class="section">
+        <h3>인허가/담당</h3>
+        <div id="routeList" class="pill-row"></div>
+      </div>
+    </aside>
+  </div>
+
+  <script src="scenario_graph_viz_data.js"></script>
+  <script>
+    const DATA = window.GRAPH_VIZ_DATA;
+    const canvas = document.getElementById('graphCanvas');
+    const ctx = canvas.getContext('2d');
+    const nodeById = new Map(DATA.nodes.map(node => [node.id, node]));
+    const edgeById = new Map(DATA.edges.map(edge => [edge.id, edge]));
+    const categoryMeta = DATA.categoryMeta;
+    const nodeTypeMeta = DATA.nodeTypeMeta;
+
+    const state = {
+      scenarioIndex: 0,
+      scale: 0.34,
+      tx: 0,
+      ty: 0,
+      opacity: 0.07,
+      dragging: false,
+      lastX: 0,
+      lastY: 0,
+      selectedEdgeId: null,
+      highlightedNodeIds: new Set(),
+      highlightedEdgeIds: new Set(),
+      edgeCategory: new Map()
+    };
+
+    function resize() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+      canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+      canvas.style.width = rect.width + 'px';
+      canvas.style.height = rect.height + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      draw();
+    }
+
+    function worldToScreen(x, y) {
+      return { x: x * state.scale + state.tx, y: y * state.scale + state.ty };
+    }
+
+    function screenToWorld(x, y) {
+      return { x: (x - state.tx) / state.scale, y: (y - state.ty) / state.scale };
+    }
+
+    function activeScenario() {
+      return DATA.scenarios[state.scenarioIndex];
+    }
+
+    function nodePosition(nodeId) {
+      const scenario = activeScenario();
+      const override = scenario?.nodePositions?.[nodeId];
+      if (override) return override;
+      const node = nodeById.get(nodeId);
+      return node ? { x: node.x, y: node.y } : null;
+    }
+
+    function setScenario(index) {
+      state.scenarioIndex = index;
+      state.selectedEdgeId = null;
+      rebuildHighlight();
+      renderSidebar();
+      renderDetail();
+      fitScenario();
+    }
+
+    function rebuildHighlight() {
+      const scenario = activeScenario();
+      state.highlightedEdgeIds = new Set(scenario.usedEdgeIds);
+      state.edgeCategory = new Map();
+      for (const [category, ids] of Object.entries(scenario.usedEdgesByCategory)) {
+        for (const id of ids) state.edgeCategory.set(id, category);
+      }
+      state.highlightedNodeIds = new Set();
+      for (const id of state.highlightedEdgeIds) {
+        const edge = edgeById.get(id);
+        if (!edge) continue;
+        state.highlightedNodeIds.add(edge.source);
+        state.highlightedNodeIds.add(edge.target);
+      }
+    }
+
+    function graphBounds(nodeIds) {
+      const points = nodeIds
+        ? [...nodeIds].map(id => nodePosition(id)).filter(Boolean)
+        : DATA.nodes.map(node => ({ x: node.x, y: node.y }));
+      if (!points.length) return { minX: -1200, minY: -850, maxX: 1200, maxY: 850 };
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (const point of points) {
+        minX = Math.min(minX, point.x);
+        minY = Math.min(minY, point.y);
+        maxX = Math.max(maxX, point.x);
+        maxY = Math.max(maxY, point.y);
+      }
+      return { minX, minY, maxX, maxY };
+    }
+
+    function fitBounds(bounds, padding = 90) {
+      const rect = canvas.getBoundingClientRect();
+      const w = Math.max(1, bounds.maxX - bounds.minX);
+      const h = Math.max(1, bounds.maxY - bounds.minY);
+      const scale = Math.min((rect.width - padding * 2) / w, (rect.height - padding * 2) / h);
+      state.scale = Math.max(0.08, Math.min(1.8, scale));
+      state.tx = rect.width / 2 - (bounds.minX + w / 2) * state.scale;
+      state.ty = rect.height / 2 - (bounds.minY + h / 2) * state.scale;
+      draw();
+    }
+
+    function fitAll() {
+      fitBounds(graphBounds(null), 70);
+    }
+
+    function fitScenario() {
+      fitBounds(graphBounds(state.highlightedNodeIds), 110);
+    }
+
+    function drawEdge(edge, color, alpha, width) {
+      const source = nodePosition(edge.source);
+      const target = nodePosition(edge.target);
+      if (!source || !target) return;
+      const a = worldToScreen(source.x, source.y);
+      const b = worldToScreen(target.x, target.y);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawNode(node, highlighted) {
+      const position = nodePosition(node.id);
+      if (!position) return;
+      const p = worldToScreen(position.x, position.y);
+      const meta = nodeTypeMeta[node.type] || { color: '#64748b' };
+      const radius = highlighted ? 7.5 : 2.2;
+      ctx.save();
+      ctx.globalAlpha = highlighted ? 1 : Math.min(0.42, state.opacity * 4.2);
+      ctx.fillStyle = highlighted ? meta.color : '#9aa3b2';
+      ctx.strokeStyle = highlighted ? '#ffffff' : '#9aa3b2';
+      ctx.lineWidth = highlighted ? 2 : 0;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+      ctx.fill();
+      if (highlighted) ctx.stroke();
+      if (highlighted && state.scale > 0.18) {
+        ctx.font = '12px ui-sans-serif, system-ui';
+        ctx.fillStyle = '#111827';
+        ctx.globalAlpha = 0.94;
+        const label = node.name.length > 30 ? node.name.slice(0, 29) + '…' : node.name;
+        ctx.fillText(label, p.x + 10, p.y - 9);
+      }
+      ctx.restore();
+    }
+
+    function draw() {
+      const rect = canvas.getBoundingClientRect();
+      ctx.clearRect(0, 0, rect.width, rect.height);
+
+      for (const edge of DATA.edges) {
+        if (state.highlightedEdgeIds.has(edge.id)) continue;
+        drawEdge(edge, '#778195', state.opacity, 0.7);
+      }
+
+      for (const edgeId of state.highlightedEdgeIds) {
+        const edge = edgeById.get(edgeId);
+        if (!edge) continue;
+        const category = state.edgeCategory.get(edgeId) || 'required';
+        const color = categoryMeta[category]?.color || '#2563eb';
+        const width = edgeId === state.selectedEdgeId ? 4.6 : 2.6;
+        drawEdge(edge, color, 0.94, width);
+      }
+
+      for (const node of DATA.nodes) {
+        if (!state.highlightedNodeIds.has(node.id)) drawNode(node, false);
+      }
+      for (const id of state.highlightedNodeIds) {
+        const node = nodeById.get(id);
+        if (node) drawNode(node, true);
+      }
+    }
+
+    function distanceToSegment(px, py, ax, ay, bx, by) {
+      const dx = bx - ax;
+      const dy = by - ay;
+      if (dx === 0 && dy === 0) return Math.hypot(px - ax, py - ay);
+      const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)));
+      return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+    }
+
+    function edgeAt(x, y) {
+      let best = null;
+      let bestDistance = 12;
+      for (const id of state.highlightedEdgeIds) {
+        const edge = edgeById.get(id);
+        if (!edge) continue;
+        const source = nodePosition(edge.source);
+        const target = nodePosition(edge.target);
+        if (!source || !target) continue;
+        const a = worldToScreen(source.x, source.y);
+        const b = worldToScreen(target.x, target.y);
+        const distance = distanceToSegment(x, y, a.x, a.y, b.x, b.y);
+        if (distance < bestDistance) {
+          best = edge;
+          bestDistance = distance;
+        }
+      }
+      return best;
+    }
+
+    function selectEdge(edgeId) {
+      state.selectedEdgeId = edgeId;
+      renderEvidence();
+      draw();
+    }
+
+    function renderSidebar() {
+      document.getElementById('nodeCount').textContent = DATA.meta.nodeCount.toLocaleString();
+      document.getElementById('edgeCount').textContent = DATA.meta.edgeCount.toLocaleString();
+      document.getElementById('scenarioCount').textContent = DATA.meta.scenarioCount.toLocaleString();
+      const list = document.getElementById('scenarioList');
+      list.innerHTML = '';
+      DATA.scenarios.forEach((scenario, index) => {
+        const button = document.createElement('button');
+        button.className = 'scenario-button' + (index === state.scenarioIndex ? ' active' : '');
+        button.innerHTML = `<strong>${index + 1}. ${scenario.title}</strong><span>${scenario.summary.neededDocuments}개 필요 서류 · ${scenario.usedEdgeIds.length}개 graph edge 활용</span>`;
+        button.addEventListener('click', () => setScenario(index));
+        list.appendChild(button);
+      });
+    }
+
+    function renderLegend() {
+      const legend = document.getElementById('legend');
+      legend.innerHTML = '';
+      for (const [key, meta] of Object.entries(categoryMeta)) {
+        const item = document.createElement('span');
+        item.className = 'legend-item';
+        item.innerHTML = `<span class="swatch" style="background:${meta.color}"></span>${meta.label}`;
+        legend.appendChild(item);
+      }
+      const dim = document.createElement('span');
+      dim.className = 'legend-item';
+      dim.innerHTML = `<span class="swatch" style="background:#9aa3b2"></span>전체 그래프 배경`;
+      legend.appendChild(dim);
+    }
+
+    function docEdgeId(doc) {
+      const scenario = activeScenario();
+      for (const [category, ids] of Object.entries(scenario.usedEdgesByCategory)) {
+        for (const id of ids) {
+          const edge = edgeById.get(id);
+          if (!edge) continue;
+          if (edge.subject === doc.subject && edge.object === doc.object && edge.chunkId === doc.chunk_id) return id;
+          if (edge.subject === doc.subject && edge.object === doc.object) return id;
+        }
+      }
+      return null;
+    }
+
+    function renderDocList() {
+      const scenario = activeScenario();
+      const list = document.getElementById('docList');
+      list.innerHTML = '';
+      const groups = [
+        ['필수', scenario.requiredDocuments],
+        ['추가', scenario.triggeredDocuments],
+        ['조건부', scenario.conditionalDocuments]
+      ];
+      for (const [label, docs] of groups) {
+        for (const doc of docs) {
+          const edgeId = docEdgeId(doc);
+          const item = document.createElement('button');
+          item.className = 'doc-item';
+          item.innerHTML = `<strong>${label} · ${doc.canonical_object}</strong><span>${doc.issue_or_prepare_at || '발급/준비처 확인'} → ${doc.submit_to || '제출처 확인'}</span>`;
+          if (edgeId) item.addEventListener('click', () => selectEdge(edgeId));
+          list.appendChild(item);
+        }
+      }
+    }
+
+    function renderDetail() {
+      const scenario = activeScenario();
+      document.getElementById('activeTitle').textContent = scenario.title;
+      document.getElementById('activeMeta').textContent = `${scenario.district} · ${scenario.businessType} · ${scenario.permits.join(', ')}`;
+      const stats = document.getElementById('scenarioStats');
+      stats.innerHTML = `
+        <span>필요 서류</span><span>${scenario.summary.neededDocuments}개</span>
+        <span>조건부 서류</span><span>${scenario.summary.conditionalDocuments}개</span>
+        <span>사전 확인</span><span>${scenario.summary.checks}개</span>
+        <span>선행요건</span><span>${scenario.summary.prerequisites}개</span>
+        <span>PRECEDES</span><span>${scenario.summary.flowEdges || 0}개</span>
+        <span>활용 edge</span><span>${scenario.usedEdgeIds.length}개</span>
+      `;
+      renderDocList();
+      renderTimeline();
+      renderRoutes();
+      renderEvidence();
+    }
+
+    function renderTimeline() {
+      const timeline = document.getElementById('timeline');
+      timeline.innerHTML = '';
+      const scenario = activeScenario();
+      const steps = scenario.flowTimeline?.length ? scenario.flowTimeline : scenario.order;
+      for (const step of steps) {
+        const li = document.createElement('li');
+        li.textContent = step;
+        timeline.appendChild(li);
+      }
+    }
+
+    function renderRoutes() {
+      const routes = document.getElementById('routeList');
+      routes.innerHTML = '';
+      const scenario = activeScenario();
+      for (const permit of scenario.permits) {
+        const pill = document.createElement('span');
+        pill.className = 'pill';
+        pill.textContent = permit;
+        routes.appendChild(pill);
+      }
+      for (const route of scenario.submissionRoutes) {
+        const pill = document.createElement('span');
+        pill.className = 'pill';
+        pill.textContent = `${route.subject} → ${route.object}`;
+        routes.appendChild(pill);
+      }
+    }
+
+    function renderEvidence() {
+      const panel = document.getElementById('evidencePanel');
+      const scenario = activeScenario();
+      let edge = state.selectedEdgeId ? edgeById.get(state.selectedEdgeId) : null;
+      if (!edge && scenario.usedEdgeIds.length) {
+        edge = edgeById.get(scenario.usedEdgeIds[0]);
+        state.selectedEdgeId = edge?.id || null;
+      }
+      if (!edge) {
+        panel.textContent = '이 시나리오에서 매칭된 graph edge가 없습니다.';
+        return;
+      }
+      const category = state.edgeCategory.get(edge.id) || 'required';
+      const categoryLabel = categoryMeta[category]?.label || category;
+      const source = edge.sourceUrl ? `<a class="source-link" href="${edge.sourceUrl}" target="_blank" rel="noreferrer">${edge.sourceTitle || edge.sourceUrl}</a>` : (edge.sourceTitle || 'source 없음');
+      panel.innerHTML = `
+        <div class="kv" style="margin-bottom:12px">
+          <span>관계</span><span>${edge.subject} <b>${edge.predicate}</b> ${edge.object}</span>
+          <span>분류</span><span>${categoryLabel}</span>
+          <span>상태</span><span>${edge.assertionLevel || '-'} · ${edge.edgeSource || '-'}</span>
+          <span>chunk</span><span>${edge.chunkId || '-'}</span>
+        </div>
+        ${edge.conditionText ? `<p class="evidence-text"><b>조건</b><br>${edge.conditionText}</p>` : ''}
+        <p class="evidence-text"><b>Evidence</b><br>${edge.evidenceText || '근거 문장 없음'}</p>
+        <p class="evidence-text"><b>Source</b><br>${source}</p>
+      `;
+    }
+
+    canvas.addEventListener('mousedown', event => {
+      state.dragging = true;
+      state.lastX = event.clientX;
+      state.lastY = event.clientY;
+      canvas.classList.add('dragging');
+    });
+
+    window.addEventListener('mouseup', () => {
+      state.dragging = false;
+      canvas.classList.remove('dragging');
+    });
+
+    window.addEventListener('mousemove', event => {
+      if (!state.dragging) return;
+      state.tx += event.clientX - state.lastX;
+      state.ty += event.clientY - state.lastY;
+      state.lastX = event.clientX;
+      state.lastY = event.clientY;
+      draw();
+    });
+
+    canvas.addEventListener('click', event => {
+      if (Math.abs(event.clientX - state.lastX) > 3 || Math.abs(event.clientY - state.lastY) > 3) return;
+      const rect = canvas.getBoundingClientRect();
+      const edge = edgeAt(event.clientX - rect.left, event.clientY - rect.top);
+      if (edge) selectEdge(edge.id);
+    });
+
+    canvas.addEventListener('wheel', event => {
+      event.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const mouse = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+      const before = screenToWorld(mouse.x, mouse.y);
+      const factor = event.deltaY < 0 ? 1.08 : 0.92;
+      state.scale = Math.max(0.05, Math.min(2.6, state.scale * factor));
+      state.tx = mouse.x - before.x * state.scale;
+      state.ty = mouse.y - before.y * state.scale;
+      draw();
+    }, { passive: false });
+
+    document.getElementById('fitAll').addEventListener('click', fitAll);
+    document.getElementById('fitScenario').addEventListener('click', fitScenario);
+    document.getElementById('opacitySlider').addEventListener('input', event => {
+      state.opacity = Number(event.target.value) / 100;
+      draw();
+    });
+
+    window.addEventListener('resize', resize);
+
+    rebuildHighlight();
+    renderSidebar();
+    renderLegend();
+    renderDetail();
+    resize();
+    setTimeout(fitAll, 60);
+    setTimeout(fitScenario, 520);
+  </script>
+</body>
+</html>

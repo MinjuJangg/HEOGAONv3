@@ -1,0 +1,316 @@
+seed_claims:
+  - subject_type: document
+    subject_name: 건축물대장 확인(용도 및 위반 여부)
+    predicate: requires_prerequisite
+    object_type: procedure_step
+    object_name: 점포 매물 탐색 완료
+    assertion_level: explicit
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.98
+    condition_text: 건축물대장 확인은 계약 직전 단계에서 주소 후보가 정해진 뒤 수행한다. 법정 기한 즉시, 체감 기한 실시간.
+  - subject_type: document
+    subject_name: 건축물대장 확인(용도 및 위반 여부)
+    predicate: requires_prerequisite
+    object_type: procedure_step
+    object_name: 계약 직전 주소 후보 확정
+    assertion_level: explicit
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.98
+    condition_text: 건축물대장 용도 및 위반 여부 확인은 임대차계약 전에 주소 후보가 확정되어야 한다.
+  - subject_type: document
+    subject_name: 안전시설등 완비증명서
+    predicate: requires_prerequisite
+    object_type: document
+    object_name: 임대차계약서 또는 시설사용계약서
+    assertion_level: conditional
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.97
+    condition_text: 안전시설등 완비증명서 대상이면 점포 사용 권원을 먼저 확인한다. 법정 기한 3일에서 7일, 체감 기한 5일에서 7일.
+  - subject_type: document
+    subject_name: 안전시설등 완비증명서
+    predicate: requires_prerequisite
+    object_type: check_item
+    object_name: 건축물대장 용도 확인
+    assertion_level: conditional
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.98
+    condition_text: 소방 완비증명 대상 여부 판단 전에 영업장 용도와 층수와 면적을 확인한다.
+  - subject_type: document
+    subject_name: 안전시설등 완비증명서
+    predicate: requires_prerequisite
+    object_type: check_item
+    object_name: 안전시설등 완비증명서 필요 여부 확인
+    assertion_level: conditional
+    authority_level: law_seed
+    review_status: rule_seed
+    confidence: 0.99
+    source_url: https://www.law.go.kr/lumLsLinkPop.do?lspttninfSeq=109754
+    condition_text: 지하층 66제곱미터 이상 또는 지상층 100제곱미터 이상 등 다중이용업소 요건에 해당하는지 먼저 확인한다.
+  - subject_type: document
+    subject_name: 안전시설등 완비증명서
+    predicate: requires_prerequisite
+    object_type: procedure_step
+    object_name: 소방시설 현장 실사 준비
+    assertion_level: conditional
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.96
+    condition_text: 소방 완비증명서 발급 전 현장 점검과 필요한 보완 공사 준비가 필요하다.
+  - subject_type: document
+    subject_name: 건강진단결과서
+    predicate: requires_prerequisite
+    object_type: check_item
+    object_name: 창업자 및 종업원 인적사항 확인
+    assertion_level: explicit
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.97
+    condition_text: 건강진단결과서는 영업자와 종업원 등 실제 종사자 인적사항이 정해진 뒤 준비한다. 법정 기한 즉시, 체감 기한 4일에서 5일.
+  - subject_type: document
+    subject_name: 건강진단결과서
+    predicate: requires_prerequisite
+    object_type: procedure_step
+    object_name: 보건소 또는 지정 의료기관 방문
+    assertion_level: explicit
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.96
+    condition_text: 건강진단결과서 발급을 위해 보건소 또는 지정 의료기관 방문과 검사 접수가 필요하다.
+  - subject_type: document
+    subject_name: 액화석유가스 완성검사필증
+    predicate: requires_prerequisite
+    object_type: document
+    object_name: 임대차계약서 또는 시설사용계약서
+    assertion_level: conditional
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.94
+    condition_text: LPG 사용 시설 검사 전 영업장 사용 권원을 확인한다. 법정 기한 즉시, 체감 기한 3일에서 5일.
+  - subject_type: document
+    subject_name: 액화석유가스 완성검사필증
+    predicate: requires_prerequisite
+    object_type: procedure_step
+    object_name: 가스 배관 및 화구 시공 완료
+    assertion_level: conditional
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.96
+    condition_text: 액화석유가스 완성검사필증은 가스 배관과 화구 시공이 끝난 뒤 신청 점검한다.
+  - subject_type: document
+    subject_name: 액화석유가스 완성검사필증
+    predicate: requires_prerequisite
+    object_type: check_item
+    object_name: LPG 사용 여부 확인
+    assertion_level: conditional
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.96
+    condition_text: LPG를 쓰는 시설인지 먼저 확인하고 대상인 경우 완성검사필증을 준비한다.
+  - subject_type: document
+    subject_name: 위생교육 수료증
+    predicate: requires_prerequisite
+    object_type: check_item
+    object_name: 창업자 인적사항 확인
+    assertion_level: explicit
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.98
+    condition_text: 위생교육 수료증은 창업자 인적사항으로 교육을 신청한 뒤 발급된다. 법정 기한 즉시, 체감 기한 당일 강의.
+  - subject_type: document
+    subject_name: 위생교육 수료증
+    predicate: requires_prerequisite
+    object_type: procedure_step
+    object_name: 업종별 위생교육 기관 선택
+    assertion_level: explicit
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.97
+    condition_text: 일반음식점 휴게음식점 등 업종에 맞는 위생교육 기관을 먼저 선택한다.
+  - subject_type: document
+    subject_name: 식품접객업 영업신고증
+    predicate: requires_prerequisite
+    object_type: document
+    object_name: 위생교육 수료증
+    assertion_level: explicit
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.99
+    condition_text: 영업신고증 발급 전 위생교육 수료증을 갖춰야 한다. 법정 기한 즉시 3시간, 체감 기한 방문 발급 즉시.
+  - subject_type: document
+    subject_name: 식품접객업 영업신고증
+    predicate: requires_prerequisite
+    object_type: document
+    object_name: 건강진단결과서
+    assertion_level: explicit
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.99
+    condition_text: 영업신고증 발급 전 건강진단결과서를 갖춰야 한다.
+  - subject_type: document
+    subject_name: 식품접객업 영업신고증
+    predicate: requires_prerequisite
+    object_type: document
+    object_name: 임대차계약서 또는 시설사용계약서
+    assertion_level: explicit
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.98
+    condition_text: 영업신고증 발급 전 영업장 사용 권원을 증명할 서류를 갖춰야 한다.
+  - subject_type: document
+    subject_name: 식품접객업 영업신고증
+    predicate: requires_prerequisite
+    object_type: document
+    object_name: 신분증
+    assertion_level: explicit
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.98
+    condition_text: 영업신고증 발급 전 신고인 확인을 위한 신분증을 갖춰야 한다.
+  - subject_type: document
+    subject_name: 식품접객업 영업신고증
+    predicate: requires_prerequisite
+    object_type: document
+    object_name: 안전시설등 완비증명서
+    assertion_level: conditional
+    authority_level: law_seed
+    review_status: rule_seed
+    confidence: 0.97
+    source_url: https://www.law.go.kr/lumLsLinkPop.do?lspttninfSeq=109754
+    condition_text: 다중이용업소 대상이면 영업신고증 발급 전 안전시설등 완비증명서를 갖춰야 한다.
+  - subject_type: document
+    subject_name: 식품접객업 영업신고증
+    predicate: requires_prerequisite
+    object_type: check_item
+    object_name: 건축물대장 용도 확인
+    assertion_level: explicit
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.99
+    condition_text: 영업신고증 발급 전 건축물대장의 정상 용도 여부를 확인한다.
+  - subject_type: document
+    subject_name: 식품접객업 영업신고증
+    predicate: requires_prerequisite
+    object_type: check_item
+    object_name: 위반건축물 여부 확인
+    assertion_level: explicit
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.99
+    condition_text: 영업신고증 발급 전 위반건축물 표시 여부를 확인한다.
+  - subject_type: document
+    subject_name: 식품접객업 영업신고증
+    predicate: requires_prerequisite
+    object_type: check_item
+    object_name: 기존 업소 행정처분 이력 확인
+    assertion_level: explicit
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.97
+    condition_text: 같은 장소 기존 업소가 있으면 영업신고 전 행정처분 이력과 승계 가능성을 확인한다.
+  - subject_type: document
+    subject_name: 사업자등록증
+    predicate: requires_prerequisite
+    object_type: document
+    object_name: 식품접객업 영업신고증
+    assertion_level: explicit
+    authority_level: tax_seed
+    review_status: rule_seed
+    confidence: 0.99
+    source_url: https://www.nts.go.kr/nts/cm/cntnts/cntntsView.do?cntntsId=7776&mi=2443
+    condition_text: 식품접객업은 사업자등록 신청 전 영업신고증을 먼저 갖추는 흐름으로 안내한다. 법정 기한 2일 이내, 체감 기한 즉시에서 1일.
+  - subject_type: document
+    subject_name: 사업자등록증
+    predicate: requires_prerequisite
+    object_type: document
+    object_name: 임대차계약서
+    assertion_level: explicit
+    authority_level: tax_seed
+    review_status: rule_seed
+    confidence: 0.98
+    source_url: https://www.nts.go.kr/nts/cm/cntnts/cntntsView.do?cntntsId=7776&mi=2443
+    condition_text: 사업장을 임차한 경우 사업자등록증 발급 전 임대차계약서를 준비한다.
+  - subject_type: document
+    subject_name: 사업자등록증
+    predicate: requires_prerequisite
+    object_type: check_item
+    object_name: 사업개시일부터 20일 이내 신청기한 확인
+    assertion_level: explicit
+    authority_level: tax_seed
+    review_status: rule_seed
+    confidence: 0.99
+    source_url: https://www.nts.go.kr/nts/cm/cntnts/cntntsView.do?cntntsId=7776&mi=2443
+    condition_text: 사업자등록은 사업 개시일부터 20일 이내 신청해야 하므로 신청기한을 확인한다.
+  - subject_type: document
+    subject_name: 옥외광고물(간판) 허가 및 신고증
+    predicate: requires_prerequisite
+    object_type: document
+    object_name: 사업자등록증
+    assertion_level: conditional
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.96
+    condition_text: 간판 허가 신고는 사업자등록증과 간판 디자인 도면이 준비된 뒤 진행한다. 법정 기한 7일 이내, 체감 기한 3일에서 5일.
+  - subject_type: document
+    subject_name: 옥외광고물(간판) 허가 및 신고증
+    predicate: requires_prerequisite
+    object_type: document
+    object_name: 간판 디자인 도면
+    assertion_level: conditional
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.96
+    condition_text: 옥외광고물 허가 신고 전 간판 디자인 도면을 준비한다.
+  - subject_type: document
+    subject_name: 옥외광고물(간판) 허가 및 신고증
+    predicate: requires_prerequisite
+    object_type: document
+    object_name: 건물 정면도
+    assertion_level: conditional
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.95
+    condition_text: 옥외광고물 허가 신고 전 간판 설치 위치가 표시된 건물 정면도를 준비한다.
+  - subject_type: document
+    subject_name: 옥외광고물(간판) 허가 및 신고증
+    predicate: requires_prerequisite
+    object_type: check_item
+    object_name: 간판 규격 위치 표시방법 확인
+    assertion_level: conditional
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.97
+    condition_text: 옥외광고물 허가 신고 전 간판 규격 위치 표시방법이 기준에 맞는지 확인한다.
+  - subject_type: document
+    subject_name: 도로점용허가
+    predicate: requires_prerequisite
+    object_type: document
+    object_name: 사업자등록증
+    assertion_level: conditional
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.94
+    condition_text: 외부 테라스나 입간판으로 도로를 점용하면 도로점용허가 전 사업 주체를 확인한다.
+  - subject_type: document
+    subject_name: 도로점용허가
+    predicate: requires_prerequisite
+    object_type: document
+    object_name: 위치도 및 평면도
+    assertion_level: conditional
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.95
+    condition_text: 도로점용허가 전 점용 위치와 면적을 표시한 위치도 및 평면도를 준비한다.
+  - subject_type: document
+    subject_name: 도로점용허가
+    predicate: requires_prerequisite
+    object_type: check_item
+    object_name: 도로 점용 위치 및 면적 확인
+    assertion_level: conditional
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.96
+    condition_text: 도로점용허가 전 외부 공간이 사유지인지 공공 도로 보도인지 확인한다.

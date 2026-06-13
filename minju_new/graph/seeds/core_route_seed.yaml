@@ -1,0 +1,176 @@
+seed_claims:
+  - subject_type: admin_business_type
+    subject_name: 휴게음식점영업
+    predicate: requires_permit
+    object_type: permit_service
+    object_name: 식품관련영업신고
+    assertion_level: explicit
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.99
+    condition_text: 휴게음식점 창업은 영업소별 식품관련 영업신고 경로로 안내한다.
+  - subject_type: admin_business_type
+    subject_name: 일반음식점영업
+    predicate: requires_permit
+    object_type: permit_service
+    object_name: 식품관련영업신고
+    assertion_level: explicit
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.99
+    condition_text: 일반음식점 창업은 영업소별 식품관련 영업신고 경로로 안내한다.
+  - subject_type: admin_business_type
+    subject_name: 제과점영업
+    predicate: requires_permit
+    object_type: permit_service
+    object_name: 식품관련영업신고
+    assertion_level: explicit
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.99
+    condition_text: 제과점 창업은 영업소별 식품관련 영업신고 경로로 안내한다.
+  - subject_type: admin_business_type
+    subject_name: 즉석판매제조가공업
+    predicate: requires_permit
+    object_type: permit_service
+    object_name: 식품관련영업신고
+    assertion_level: explicit
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.98
+    condition_text: 즉석판매제조가공업은 식품관련 영업신고 경로로 안내한다.
+  - subject_type: admin_business_type
+    subject_name: 식품제조가공업
+    predicate: requires_permit
+    object_type: permit_service
+    object_name: 식품관련영업신고
+    assertion_level: explicit
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.98
+    condition_text: 식품제조가공업은 식품관련 영업신고 경로로 안내한다.
+  - subject_type: admin_business_type
+    subject_name: 통신판매업
+    predicate: requires_permit
+    object_type: permit_service
+    object_name: 통신판매업신고
+    assertion_level: explicit
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.96
+    condition_text: 온라인 판매가 있으면 통신판매업 신고 경로를 별도로 안내한다.
+  - subject_type: condition_module
+    subject_name: 간판 설치
+    predicate: triggers
+    object_type: permit_service
+    object_name: 옥외광고물 등의 표시허가(신고)
+    assertion_level: conditional
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.97
+    condition_text: 영업장 외부 간판을 설치하거나 변경하면 옥외광고물 표시허가 또는 신고 대상 여부를 확인한다.
+  - subject_type: condition_module
+    subject_name: 외부 공간 사용
+    predicate: triggers
+    object_type: permit_service
+    object_name: 도로점용허가
+    assertion_level: conditional
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.95
+    condition_text: 테라스나 입간판 등으로 공공 도로 또는 보도를 점유하면 도로점용허가 대상 여부를 확인한다.
+  - subject_type: condition_module
+    subject_name: 기존 음식점 인수
+    predicate: triggers
+    object_type: permit_service
+    object_name: 영업자 지위승계 신고
+    assertion_level: conditional
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.96
+    condition_text: 같은 장소의 기존 영업을 인수하는 경우 영업자 지위승계 신고 가능성과 행정처분 승계 여부를 확인한다.
+  - subject_type: condition_module
+    subject_name: 온라인 판매
+    predicate: triggers
+    object_type: permit_service
+    object_name: 통신판매업신고
+    assertion_level: conditional
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.96
+    condition_text: 온라인 주문 또는 판매를 운영하면 통신판매업 신고 대상 여부를 확인한다.
+  - subject_type: condition_module
+    subject_name: 주류 판매
+    predicate: triggers
+    object_type: check_item
+    object_name: 주류 판매 가능 업종 및 일반음식점 전환 여부 확인
+    assertion_level: conditional
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.99
+    condition_text: 주류 판매가 있으면 휴게음식점이 아니라 일반음식점 등 음주행위가 허용되는 업종인지 확인한다.
+  - subject_type: condition_module
+    subject_name: 주류 판매
+    predicate: raises_risk
+    object_type: risk_flag
+    object_name: 휴게음식점 주류 판매 제한
+    assertion_level: conditional
+    authority_level: law_seed
+    review_status: rule_seed
+    confidence: 0.99
+    source_url: https://www.law.go.kr/LSW/lsLawLinkInfo.do?chrClsCd=010202&lsId=004097&lsJoLnkSeq=900232309&print=print
+    condition_text: 식품위생법 시행령상 휴게음식점영업과 제과점영업은 음주행위가 허용되지 않는 영업으로 분류된다.
+  - subject_type: admin_business_type
+    subject_name: 휴게음식점영업
+    predicate: raises_risk
+    object_type: risk_flag
+    object_name: 휴게음식점 주류 판매 제한
+    assertion_level: explicit
+    authority_level: law_seed
+    review_status: rule_seed
+    confidence: 0.99
+    source_url: https://www.law.go.kr/LSW/lsLawLinkInfo.do?chrClsCd=010202&lsId=004097&lsJoLnkSeq=900232309&print=print
+    condition_text: 휴게음식점영업은 음주행위가 허용되지 않는 영업이다.
+  - subject_type: permit_service
+    subject_name: 식품관련영업신고
+    predicate: based_on
+    object_type: legal_basis
+    object_name: 식품위생법 제37조 제5항
+    assertion_level: explicit
+    authority_level: law_seed
+    review_status: rule_seed
+    confidence: 0.98
+    condition_text: 신고대상 식품관련 영업은 식품위생법상 영업 신고 근거를 따른다.
+  - subject_type: admin_business_type
+    subject_name: 휴게음식점영업
+    predicate: based_on
+    object_type: legal_basis
+    object_name: 식품위생법 시행령 제21조 제8호
+    assertion_level: explicit
+    authority_level: law_seed
+    review_status: rule_seed
+    confidence: 0.99
+    source_url: https://www.law.go.kr/LSW/lsLawLinkInfo.do?chrClsCd=010202&lsId=004097&lsJoLnkSeq=900232309&print=print
+    condition_text: 휴게음식점영업은 식품위생법 시행령 제21조 제8호의 식품접객업 세부 종류에 포함된다.
+  - subject_type: admin_business_type
+    subject_name: 일반음식점영업
+    predicate: based_on
+    object_type: legal_basis
+    object_name: 식품위생법 시행령 제21조 제8호
+    assertion_level: explicit
+    authority_level: law_seed
+    review_status: rule_seed
+    confidence: 0.99
+    source_url: https://www.law.go.kr/LSW/lsLawLinkInfo.do?chrClsCd=010202&lsId=004097&lsJoLnkSeq=900232309&print=print
+    condition_text: 일반음식점영업은 식품위생법 시행령 제21조 제8호의 식품접객업 세부 종류에 포함된다.
+  - subject_type: permit_service
+    subject_name: 사업자등록 신청
+    predicate: based_on
+    object_type: legal_basis
+    object_name: 부가가치세법 제8조
+    assertion_level: explicit
+    authority_level: law_seed
+    review_status: rule_seed
+    confidence: 0.99
+    source_url: https://www.nts.go.kr/nts/cm/cntnts/cntntsView.do?cntntsId=7776&mi=2443
+    condition_text: 사업자는 사업 개시일부터 20일 이내에 사업자등록을 신청해야 하며 사업 개시 전 신청도 가능하다.

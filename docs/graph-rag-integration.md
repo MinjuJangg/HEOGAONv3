@@ -14,7 +14,7 @@ GRAPH_RAG_API_KEY=
 GRAPH_RAG_TIMEOUT_SECONDS=8
 ```
 
-`GRAPH_RAG_BASE_URL`이 비어 있거나 요청이 실패하면 기존 `catalog.py` fallback으로 시연이 유지됩니다.
+`GRAPH_RAG_BASE_URL`이 비어 있거나 요청이 실패하면 먼저 저장소에 포함된 `minju_new/graph/output/final_graph` CSV/JSONL을 로컬 GraphRAG 후보 소스로 사용합니다. 로컬 그래프에서도 유효한 응답을 만들 수 없을 때만 기존 `catalog.py` fallback으로 시연이 유지됩니다.
 
 ## 백엔드 연결 지점
 
@@ -31,6 +31,12 @@ GraphRAG 우선순위:
 2. `DocumentService`가 필요한 서류 목록을 요청합니다.
 3. `InquiryService`가 문의 task와 담당 부서를 요청합니다.
 4. 응답이 없거나 schema가 맞지 않으면 catalog fallback을 사용합니다.
+
+응답 소스 우선순위:
+
+1. 원격 `POST /retrieve`
+2. 로컬 `minju_new/graph/output/final_graph`
+3. `backend/app/data/catalog.py`
 
 ## 요청 계약
 

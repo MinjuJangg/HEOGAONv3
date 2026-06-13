@@ -19,7 +19,7 @@ INTAKE -> NEEDS_INFO -> DIAGNOSIS -> DOCUMENTS -> INQUIRY
 ```text
 app/
   core/config.py                 environment settings
-  integrations/llm_client.py     OpenAI-compatible JSON LLM boundary
+  integrations/llm_client.py     GMS JSON LLM boundary
   schemas/ai.py                  validated AI output contracts
   repositories/case_repository.py in-memory case store, DB-replaceable
   data/catalog.py                MVP question/document rule seeds
@@ -43,11 +43,11 @@ Copy `.env.example` to `.env` or export the variables before running:
 ```bash
 cp .env.example .env
 export LLM_API_KEY="..."
-export LLM_MODEL="gpt-4o-mini"
-export LLM_BASE_URL="https://api.openai.com/v1"
+export LLM_MODEL="gpt-5.5"
+export LLM_BASE_URL="https://gms.ssafy.io/gmsapi/api.openai.com/v1"
 ```
 
-`OPENAI_API_KEY` is also accepted as a fallback for `LLM_API_KEY`.
+`GMS_API_KEY` is also accepted as a fallback for `LLM_API_KEY`.
 `backend/.env` is loaded automatically when the server starts.
 
 If no API key is present, the service continues with deterministic rule fallback for demos.
@@ -65,7 +65,7 @@ GRAPH_RAG_TIMEOUT_SECONDS=8
 
 The backend calls `POST {GRAPH_RAG_BASE_URL}/retrieve` with `kind` set to `questions`, `documents`, `inquiries`, or `evidence`.
 
-If GraphRAG is disabled, unreachable, or returns an invalid shape, the affected area falls back to `app/data/catalog.py`. The state machine, retry limits, and next-screen routing stay in FastAPI.
+If the remote GraphRAG service is disabled, unreachable, or returns an invalid shape, the backend first tries the checked-in local graph package at `minju_new/graph/output/final_graph`. If that local graph cannot produce a valid response, the affected area falls back to `app/data/catalog.py`. The state machine, retry limits, and next-screen routing stay in FastAPI.
 
 ## Run
 

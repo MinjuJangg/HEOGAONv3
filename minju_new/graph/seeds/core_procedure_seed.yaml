@@ -1,0 +1,206 @@
+seed_claims:
+  - subject_type: procedure_step
+    subject_name: 창업 주소 확정
+    predicate: precedes
+    object_type: procedure_step
+    object_name: 건축물대장 발급 및 열람
+    assertion_level: explicit
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.99
+    condition_text: 영업장 주소가 정해지면 건축물대장 발급 또는 열람을 먼저 수행한다.
+  - subject_type: procedure_step
+    subject_name: 건축물대장 발급 및 열람
+    predicate: precedes
+    object_type: procedure_step
+    object_name: 건축물 용도 판정
+    assertion_level: explicit
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.99
+    condition_text: 건축물대장에서 용도와 층수와 면적을 확인한 뒤 업종 가능 여부를 판정한다.
+  - subject_type: procedure_step
+    subject_name: 건축물 용도 판정
+    predicate: precedes
+    object_type: procedure_step
+    object_name: 위반건축물 여부 확인
+    assertion_level: explicit
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.99
+    condition_text: 용도 판정 후 같은 대장에서 위반건축물 표시 여부를 확인한다.
+  - subject_type: procedure_step
+    subject_name: 위반건축물 여부 확인
+    predicate: precedes
+    object_type: procedure_step
+    object_name: 기존 업소 행정처분 이력 확인
+    assertion_level: explicit
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.98
+    condition_text: 위반건축물 여부 확인 후 같은 장소의 기존 업소와 처분 이력을 확인한다.
+  - subject_type: procedure_step
+    subject_name: 기존 업소 행정처분 이력 확인
+    predicate: precedes
+    object_type: procedure_step
+    object_name: 건물 소유자와 관리인 권한 확인
+    assertion_level: explicit
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.97
+    condition_text: 기존 영업 이력 확인 후 임대차 전대차와 소유자 관리인 권한을 확인한다.
+  - subject_type: procedure_step
+    subject_name: 건물 소유자와 관리인 권한 확인
+    predicate: precedes
+    object_type: procedure_step
+    object_name: 영업신고 준비
+    assertion_level: explicit
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.97
+    condition_text: 주소와 권한 리스크를 확인한 뒤 영업신고 서류 준비 단계로 넘어간다.
+  - subject_type: procedure_step
+    subject_name: 위생교육 이수
+    predicate: precedes
+    object_type: procedure_step
+    object_name: 영업신고 신청
+    assertion_level: explicit
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.99
+    condition_text: 위생교육 수료증은 영업신고 신청 전에 준비한다.
+  - subject_type: procedure_step
+    subject_name: 건강진단결과서 발급
+    predicate: precedes
+    object_type: procedure_step
+    object_name: 영업신고 신청
+    assertion_level: explicit
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.99
+    condition_text: 건강진단결과서는 영업신고 신청 전에 준비한다.
+  - subject_type: procedure_step
+    subject_name: 임대차계약서 및 신분증 준비
+    predicate: precedes
+    object_type: procedure_step
+    object_name: 영업신고 신청
+    assertion_level: explicit
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.98
+    condition_text: 임대차계약서와 신분증은 영업신고 신청 전에 준비한다.
+  - subject_type: procedure_step
+    subject_name: 안전시설등 완비증명서 필요 여부 확인
+    predicate: precedes
+    object_type: procedure_step
+    object_name: 영업신고 신청
+    assertion_level: conditional
+    authority_level: law_seed
+    review_status: rule_seed
+    confidence: 0.98
+    source_url: https://www.law.go.kr/lumLsLinkPop.do?lspttninfSeq=109754
+    condition_text: 다중이용업소 요건에 해당하는 경우 안전시설등 완비증명서를 영업신고 전에 확인한다.
+  - subject_type: procedure_step
+    subject_name: 영업신고 준비
+    predicate: precedes
+    object_type: procedure_step
+    object_name: 영업신고 신청
+    assertion_level: explicit
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.99
+    condition_text: 기본 서류와 사전 체크가 완료되면 영업신고를 신청한다.
+  - subject_type: procedure_step
+    subject_name: 영업신고 신청
+    predicate: precedes
+    object_type: procedure_step
+    object_name: 영업신고증 발급
+    assertion_level: explicit
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.99
+    condition_text: 영업신고 신청이 수리되면 영업신고증 발급 단계로 이어진다.
+  - subject_type: procedure_step
+    subject_name: 영업신고증 발급
+    predicate: precedes
+    object_type: procedure_step
+    object_name: 사업자등록 신청
+    assertion_level: explicit
+    authority_level: tax_seed
+    review_status: rule_seed
+    confidence: 0.99
+    source_url: https://www.nts.go.kr/nts/cm/cntnts/cntntsView.do?cntntsId=7776&mi=2443
+    condition_text: 인허가 신고 등록 업종은 영업신고증을 준비한 뒤 사업자등록을 신청하는 흐름으로 안내한다.
+  - subject_type: procedure_step
+    subject_name: 사업자등록 신청
+    predicate: precedes
+    object_type: procedure_step
+    object_name: 사업자등록증 발급
+    assertion_level: explicit
+    authority_level: tax_seed
+    review_status: rule_seed
+    confidence: 0.99
+    source_url: https://www.nts.go.kr/nts/cm/cntnts/cntntsView.do?cntntsId=7776&mi=2443
+    condition_text: 사업자등록 신청 후 사업자등록증 발급 단계로 이어진다.
+  - subject_type: procedure_step
+    subject_name: 주류 판매 여부 확인
+    predicate: precedes
+    object_type: procedure_step
+    object_name: 일반음식점 전환 여부 확인
+    assertion_level: conditional
+    authority_level: law_seed
+    review_status: rule_seed
+    confidence: 0.99
+    source_url: https://www.law.go.kr/LSW/lsLawLinkInfo.do?chrClsCd=010202&lsId=004097&lsJoLnkSeq=900232309&print=print
+    condition_text: 주류 판매 계획이 있으면 휴게음식점으로 진행하기 전에 일반음식점 등 가능한 업종 전환 여부를 확인한다.
+  - subject_type: procedure_step
+    subject_name: 일반음식점 전환 여부 확인
+    predicate: precedes
+    object_type: procedure_step
+    object_name: 영업신고 신청
+    assertion_level: conditional
+    authority_level: law_seed
+    review_status: rule_seed
+    confidence: 0.98
+    source_url: https://www.law.go.kr/LSW/lsLawLinkInfo.do?chrClsCd=010202&lsId=004097&lsJoLnkSeq=900232309&print=print
+    condition_text: 주류 판매 가능 업종을 확정한 뒤 영업신고 신청으로 넘어간다.
+  - subject_type: procedure_step
+    subject_name: 간판 규격 위치 확인
+    predicate: precedes
+    object_type: procedure_step
+    object_name: 옥외광고물 신고 대상 확인
+    assertion_level: conditional
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.96
+    condition_text: 간판을 설치하거나 변경하면 규격 위치 확인 후 신고 대상 여부를 확인한다.
+  - subject_type: procedure_step
+    subject_name: 옥외광고물 신고 대상 확인
+    predicate: precedes
+    object_type: procedure_step
+    object_name: 옥외광고물 표시허가 신고 신청
+    assertion_level: conditional
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.96
+    condition_text: 옥외광고물 신고 대상이면 표시허가 또는 신고 신청으로 넘어간다.
+  - subject_type: procedure_step
+    subject_name: 외부공간 위치 확인
+    predicate: precedes
+    object_type: procedure_step
+    object_name: 도로점용허가 대상 확인
+    assertion_level: conditional
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.95
+    condition_text: 외부 공간을 사용하면 도로 또는 보도 점용 여부를 먼저 확인한다.
+  - subject_type: procedure_step
+    subject_name: 도로점용허가 대상 확인
+    predicate: precedes
+    object_type: procedure_step
+    object_name: 도로점용허가 신청
+    assertion_level: conditional
+    authority_level: service_core_seed
+    review_status: rule_seed
+    confidence: 0.95
+    condition_text: 도로점용허가 대상이면 도로점용허가 신청 단계로 넘어간다.

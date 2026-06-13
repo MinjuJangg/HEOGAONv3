@@ -1,0 +1,31 @@
+{
+  "scenario_count": 3,
+  "source_graph_edges": "C:\\Users\\SSAFY\\Desktop\\New project 2\\minju\\graph\\output\\final_graph\\graph_edges_high_precision.csv",
+  "outputs": [
+    "scenario_results.json",
+    "scenario_results.md"
+  ],
+  "counts": {
+    "mapo_cafe_startup": {
+      "resolved_graph_edges": 24,
+      "required_documents": 64,
+      "document_prerequisites": 11,
+      "submission_routes": 3,
+      "order_and_trigger_edges": 12
+    },
+    "gangnam_restaurant_road_occupation": {
+      "resolved_graph_edges": 8,
+      "required_documents": 59,
+      "document_prerequisites": 14,
+      "submission_routes": 4,
+      "order_and_trigger_edges": 15
+    },
+    "songpa_outdoor_sign": {
+      "resolved_graph_edges": 2,
+      "required_documents": 12,
+      "document_prerequisites": 0,
+      "submission_routes": 1,
+      "order_and_trigger_edges": 1
+    }
+  }
+}

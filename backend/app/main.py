@@ -4,6 +4,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from app.core.config import settings
 from app.flow import CASES, apply_turn, create_case, envelope
 from app.services.flow_service import FlowInputError
 
@@ -17,10 +18,7 @@ app = FastAPI(title="Heogaon Flow V2", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3100",
-        "http://127.0.0.1:3100",
-    ],
+    allow_origins=list(settings.cors_allowed_origins),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

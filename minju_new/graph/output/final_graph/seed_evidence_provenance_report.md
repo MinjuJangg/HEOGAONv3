@@ -1,0 +1,160 @@
+# Seed Evidence Provenance Report
+
+## Summary
+
+- total_seed_claims: 110
+- source_backed: 91
+- curated_unmatched: 19
+
+## Source Documents Used
+
+- gov24_food_business_report: 22
+- easylaw_1966_body_asylaw_go_kr_CSP_CsmMain_laf_csmSeq_1966: 13
+- gov24_outdoor_ad_permit_report: 5
+- gov24_ecommerce_report: 4
+- gov24_road_occupation_permit: 4
+- easylaw_1966_body_v_csmSeq_1966_ccfNo_2_cciNo_1_cnpClsNo_1: 4
+- easylaw_706_body_ov_csmSeq_706_ccfNo_3_cciNo_2_cnpClsNo_2: 3
+- easylaw_706_body_ov_csmSeq_706_ccfNo_3_cciNo_2_cnpClsNo_1: 3
+- easylaw_1009_body_v_csmSeq_1009_ccfNo_2_cciNo_3_cnpClsNo_1: 3
+- law_주류_면허_등에_관한_법률: 2
+- easylaw_2009_body_v_csmSeq_2009_ccfNo_2_cciNo_1_cnpClsNo_3: 2
+- easylaw_633_body_ov_csmSeq_633_ccfNo_3_cciNo_2_cnpClsNo_1: 2
+- easylaw_1140_body_v_csmSeq_1140_ccfNo_2_cciNo_2_cnpClsNo_2: 2
+- law_도로법: 2
+- easylaw_1453_body_v_csmSeq_1453_ccfNo_3_cciNo_1_cnpClsNo_1: 1
+- easylaw_716_body_ov_csmSeq_716_ccfNo_2_cciNo_1_cnpClsNo_2: 1
+- easylaw_1966_body_v_csmSeq_1966_ccfNo_2_cciNo_1_cnpClsNo_2: 1
+- law_도로법_시행규칙: 1
+- easylaw_840_body_fNo_6_cciNo_2_cnpClsNo_2_menuType_cnpcls: 1
+- easylaw_839_body_ov_csmSeq_839_ccfNo_5_cciNo_2_cnpClsNo_1: 1
+- easylaw_839_body_ov_csmSeq_839_ccfNo_2_cciNo_2_cnpClsNo_1: 1
+- easylaw_706_body_ov_csmSeq_706_ccfNo_3_cciNo_3_cnpClsNo_2: 1
+- law_옥외광고물_등의_관리와_옥외광고산업_진흥에_관한_법률_시행령: 1
+- law_도로법_시행령: 1
+- easylaw_839_body_fNo_2_cciNo_1_cnpClsNo_1_menuType_cnpcls: 1
+- easylaw_839_unknown_9_ccfNo_2_cciNo_1_cnpClsNo_1_search_put: 1
+- easylaw_1451_body_v_csmSeq_1451_ccfNo_2_cciNo_2_cnpClsNo_1: 1
+- easylaw_1973_body_v_csmSeq_1973_ccfNo_4_cciNo_1_cnpClsNo_1: 1
+- easylaw_839_body_ov_csmSeq_839_ccfNo_3_cciNo_1_cnpClsNo_2: 1
+- easylaw_1966_body_v_csmSeq_1966_ccfNo_1_cciNo_3_cnpClsNo_2: 1
+- easylaw_1009_body_v_csmSeq_1009_ccfNo_2_cciNo_1_cnpClsNo_1: 1
+- easylaw_1966_qna_o_1_cciNo_1_cnpClsNo_1_menuType_onhunqna: 1
+- law_체육시설의_설치ㆍ이용에_관한_법률_시행규칙: 1
+- law_음악산업진흥에_관한_법률_시행규칙: 1
+
+## Curated Claims Without Strong Evidence Match
+
+- 건축물 용도 확인 --triggers--> 건축물대장 용도 확인 | score=5 | source=easylaw_1453_body_v_csmSeq_1453_ccfNo_2_cciNo_1_cnpClsNo_2 | chunk=evchunk_d37ad266df5698
+- 위반건축물 확인 --triggers--> 위반건축물 여부 확인 | score=3 | source=easylaw_1453_body_v_csmSeq_1453_ccfNo_2_cciNo_1_cnpClsNo_2 | chunk=evchunk_397c779b2f439d
+- 기존 영업 이력 확인 --triggers--> 기존 업소 행정처분 이력 확인 | score=5 | source=easylaw_1966_body_asylaw_go_kr_CSP_CsmMain_laf_csmSeq_1966 | chunk=evchunk_3831057c287364
+- 건축물대장 용도 확인 --handled_by--> 건축물대장 및 건축물 용도 업무 | score=5 | source=easylaw_302_body_ov_csmSeq_302_ccfNo_2_cciNo_1_cnpClsNo_1 | chunk=evchunk_8192b8b52a71ef
+- 위반건축물 여부 확인 --handled_by--> 건축물 관리 업무 | score=4 | source=easylaw_1765_body_v_csmSeq_1765_ccfNo_3_cciNo_4_cnpClsNo_2 | chunk=evchunk_d66a4e0d008866
+- 도로 점용 위치 및 면적 확인 --handled_by--> 도로점용 업무 | score=5 | source=easylaw_1966_body_asylaw_go_kr_CSP_CsmMain_laf_csmSeq_1966 | chunk=evchunk_3831057c287364
+- 창업 주소 확정 --precedes--> 건축물대장 발급 및 열람 | score=4 | source=easylaw_1966_body_v_csmSeq_1966_ccfNo_3_cciNo_1_cnpClsNo_1 | chunk=evchunk_bb25fe5b52667b
+- 위반건축물 여부 확인 --precedes--> 기존 업소 행정처분 이력 확인 | score=5 | source=law_식품위생법 | chunk=evchunk_14a449f14c438e
+- 건물 소유자와 관리인 권한 확인 --precedes--> 영업신고 준비 | score=5 | source=easylaw_907_body_ov_csmSeq_907_ccfNo_2_cciNo_3_cnpClsNo_1 | chunk=evchunk_95a8d301dc6cd8
+- 간판 규격 위치 확인 --precedes--> 옥외광고물 신고 대상 확인 | score=4 | source=easylaw_302_body_ov_csmSeq_302_ccfNo_2_cciNo_2_cnpClsNo_3 | chunk=evchunk_68728af3c94947
+- 옥외광고물 신고 대상 확인 --precedes--> 옥외광고물 표시허가 신고 신청 | score=2 | source=easylaw_1966_body_asylaw_go_kr_CSP_CsmMain_laf_csmSeq_1966 | chunk=evchunk_3831057c287364
+- 외부공간 위치 확인 --precedes--> 도로점용허가 대상 확인 | score=5 | source=law_도로법 | chunk=evchunk_b730eff3f0d9fb
+- 건축물대장 확인(용도 및 위반 여부) --requires_prerequisite--> 점포 매물 탐색 완료 | score=5 | source=easylaw_1973_body_v_csmSeq_1973_ccfNo_4_cciNo_1_cnpClsNo_1 | chunk=evchunk_adc182d8f5f808
+- 액화석유가스 완성검사필증 --requires_prerequisite--> 가스 배관 및 화구 시공 완료 | score=5 | source=easylaw_1966_body_v_csmSeq_1966_ccfNo_1_cciNo_3_cnpClsNo_2 | chunk=evchunk_4da5b85feb84a1
+- 식품접객업 영업신고증 --requires_prerequisite--> 건축물대장 용도 확인 | score=4 | source=easylaw_534_body_ov_csmSeq_534_ccfNo_2_cciNo_3_cnpClsNo_2 | chunk=evchunk_28620b3aeb0e9d
+- 식품접객업 영업신고증 --requires_prerequisite--> 위반건축물 여부 확인 | score=4 | source=easylaw_1966_body_asylaw_go_kr_CSP_CsmMain_laf_csmSeq_1966 | chunk=evchunk_3831057c287364
+- 옥외광고물(간판) 허가 및 신고증 --requires_prerequisite--> 간판 디자인 도면 | score=3 | source=easylaw_1966_body_asylaw_go_kr_CSP_CsmMain_laf_csmSeq_1966 | chunk=evchunk_3831057c287364
+- 옥외광고물(간판) 허가 및 신고증 --requires_prerequisite--> 건물 정면도 | score=5 | source=easylaw_1888_body_v_csmSeq_1888_ccfNo_1_cciNo_3_cnpClsNo_2 | chunk=evchunk_3a6d5ffda1fb46
+- 옥외광고물(간판) 허가 및 신고증 --requires_prerequisite--> 간판 규격 위치 표시방법 확인 | score=5 | source=law_옥외광고물_등의_관리와_옥외광고산업_진흥에_관한_법률_시행령 | chunk=evchunk_571afb885914e0
+
+## Source-Backed Claims
+
+- 휴게음식점영업 --requires_permit--> 식품관련영업신고 | score=24 | source=gov24_food_business_report | chunk=evchunk_9dddfe6a5ea01c
+- 일반음식점영업 --requires_permit--> 식품관련영업신고 | score=24 | source=gov24_food_business_report | chunk=evchunk_9dddfe6a5ea01c
+- 제과점영업 --requires_permit--> 식품관련영업신고 | score=23 | source=gov24_food_business_report | chunk=evchunk_9dddfe6a5ea01c
+- 즉석판매제조가공업 --requires_permit--> 식품관련영업신고 | score=23 | source=gov24_food_business_report | chunk=evchunk_64284a635e9064
+- 식품제조가공업 --requires_permit--> 식품관련영업신고 | score=13 | source=gov24_food_business_report | chunk=evchunk_9aba1539c4c8a8
+- 통신판매업 --requires_permit--> 통신판매업신고 | score=20 | source=gov24_ecommerce_report | chunk=evchunk_38f30dc4fcf695
+- 간판 설치 --triggers--> 옥외광고물 등의 표시허가(신고) | score=14 | source=gov24_outdoor_ad_permit_report | chunk=evchunk_817c8d4b3c0cb4
+- 외부 공간 사용 --triggers--> 도로점용허가 | score=12 | source=gov24_road_occupation_permit | chunk=evchunk_7203dce9f19534
+- 기존 음식점 인수 --triggers--> 영업자 지위승계 신고 | score=17 | source=easylaw_706_body_ov_csmSeq_706_ccfNo_3_cciNo_2_cnpClsNo_2 | chunk=evchunk_fd0b4ccbb0ee82
+- 온라인 판매 --triggers--> 통신판매업신고 | score=13 | source=gov24_ecommerce_report | chunk=evchunk_022c0775f5a6a8
+- 주류 판매 --triggers--> 주류 판매 가능 업종 및 일반음식점 전환 여부 확인 | score=14 | source=law_주류_면허_등에_관한_법률 | chunk=evchunk_f68a1b227f309f
+- 주류 판매 --raises_risk--> 휴게음식점 주류 판매 제한 | score=15 | source=law_주류_면허_등에_관한_법률 | chunk=evchunk_f68a1b227f309f
+- 휴게음식점영업 --raises_risk--> 휴게음식점 주류 판매 제한 | score=20 | source=easylaw_706_body_ov_csmSeq_706_ccfNo_3_cciNo_2_cnpClsNo_1 | chunk=evchunk_9c039039c954f7
+- 식품관련영업신고 --based_on--> 식품위생법 제37조 제5항 | score=15 | source=gov24_food_business_report | chunk=evchunk_9aba1539c4c8a8
+- 휴게음식점영업 --based_on--> 식품위생법 시행령 제21조 제8호 | score=18 | source=easylaw_2009_body_v_csmSeq_2009_ccfNo_2_cciNo_1_cnpClsNo_3 | chunk=evchunk_f1d89fd1b11338
+- 일반음식점영업 --based_on--> 식품위생법 시행령 제21조 제8호 | score=18 | source=easylaw_2009_body_v_csmSeq_2009_ccfNo_2_cciNo_1_cnpClsNo_3 | chunk=evchunk_f1d89fd1b11338
+- 사업자등록 신청 --based_on--> 부가가치세법 제8조 | score=26 | source=easylaw_1453_body_v_csmSeq_1453_ccfNo_3_cciNo_1_cnpClsNo_1 | chunk=evchunk_eb320281d98550
+- 식품관련영업신고 --requires_document--> 식품 영업 신고서 | score=26 | source=gov24_food_business_report | chunk=evchunk_64284a635e9064
+- 식품관련영업신고 --requires_document--> 위생교육 수료증 | score=16 | source=gov24_food_business_report | chunk=evchunk_b05df99a45d63a
+- 식품관련영업신고 --requires_document--> 건강진단결과서 | score=24 | source=gov24_food_business_report | chunk=evchunk_9dddfe6a5ea01c
+- 식품관련영업신고 --requires_document--> 임대차계약서 또는 시설사용계약서 | score=17 | source=gov24_food_business_report | chunk=evchunk_4be61814be5dcf
+- 식품관련영업신고 --requires_document--> 신분증 | score=14 | source=gov24_food_business_report | chunk=evchunk_9dddfe6a5ea01c
+- 식품관련영업신고 --requires_document--> 안전시설등 완비증명서 | score=30 | source=gov24_food_business_report | chunk=evchunk_4be61814be5dcf
+- 식품관련영업신고 --needs_check--> 건축물대장 용도 확인 | score=13 | source=gov24_food_business_report | chunk=evchunk_9dddfe6a5ea01c
+- 식품관련영업신고 --needs_check--> 위반건축물 여부 확인 | score=12 | source=gov24_food_business_report | chunk=evchunk_9aba1539c4c8a8
+- 식품관련영업신고 --needs_check--> 기존 업소 행정처분 이력 확인 | score=13 | source=gov24_food_business_report | chunk=evchunk_4be61814be5dcf
+- 식품관련영업신고 --needs_check--> 건물 소유자와 관리인 권한 확인 | score=13 | source=gov24_food_business_report | chunk=evchunk_9dddfe6a5ea01c
+- 식품관련영업신고 --needs_check--> 안전시설등 완비증명서 필요 여부 확인 | score=14 | source=gov24_food_business_report | chunk=evchunk_4be61814be5dcf
+- 사업자등록 신청 --requires_document--> 사업자등록 신청서 | score=24 | source=easylaw_716_body_ov_csmSeq_716_ccfNo_2_cciNo_1_cnpClsNo_2 | chunk=evchunk_0c73d2e4448b1e
+- 사업자등록 신청 --requires_document--> 영업신고증 | score=23 | source=easylaw_1966_body_asylaw_go_kr_CSP_CsmMain_laf_csmSeq_1966 | chunk=evchunk_3831057c287364
+- 사업자등록 신청 --requires_document--> 임대차계약서 | score=24 | source=easylaw_1009_body_v_csmSeq_1009_ccfNo_2_cciNo_3_cnpClsNo_1 | chunk=evchunk_fcfdd03d578288
+- 사업자등록 신청 --needs_check--> 사업개시일부터 20일 이내 신청기한 확인 | score=23 | source=easylaw_1966_body_v_csmSeq_1966_ccfNo_2_cciNo_1_cnpClsNo_2 | chunk=evchunk_7d6584540b280f
+- 옥외광고물 등의 표시허가(신고) --requires_document--> 옥외광고물 표시 신청서 | score=17 | source=gov24_outdoor_ad_permit_report | chunk=evchunk_dead1f0754d4fd
+- 옥외광고물 등의 표시허가(신고) --requires_document--> 광고물 원색도안 또는 원색사진 | score=19 | source=gov24_outdoor_ad_permit_report | chunk=evchunk_817c8d4b3c0cb4
+- 옥외광고물 등의 표시허가(신고) --needs_check--> 간판 규격 위치 표시방법 확인 | score=15 | source=gov24_outdoor_ad_permit_report | chunk=evchunk_817c8d4b3c0cb4
+- 도로점용허가 --requires_document--> 도로점용허가 신청서 | score=25 | source=gov24_road_occupation_permit | chunk=evchunk_bd7db50425da39
+- 도로점용허가 --requires_document--> 위치도 및 평면도 | score=15 | source=gov24_road_occupation_permit | chunk=evchunk_5d22f8f03bf0a4
+- 도로점용허가 --needs_check--> 도로 점용 위치 및 면적 확인 | score=14 | source=law_도로법_시행규칙 | chunk=evchunk_5529b82ccccf38
+- 영업자 지위승계 신고 --requires_document--> 영업자 지위승계 신고서 | score=25 | source=easylaw_706_body_ov_csmSeq_706_ccfNo_3_cciNo_2_cnpClsNo_2 | chunk=evchunk_fd0b4ccbb0ee82
+- 영업자 지위승계 신고 --requires_document--> 양도양수 계약서 또는 권리관계 증빙 | score=14 | source=easylaw_840_body_fNo_6_cciNo_2_cnpClsNo_2_menuType_cnpcls | chunk=evchunk_74f868a2b7b38f
+- 통신판매업신고 --requires_document--> 구매안전서비스 이용확인증 | score=15 | source=gov24_ecommerce_report | chunk=evchunk_022c0775f5a6a8
+- 식품관련영업신고 --handled_by--> 식품위생 업무 | score=13 | source=gov24_food_business_report | chunk=evchunk_9aba1539c4c8a8
+- 영업신고 --handled_by--> 식품위생 업무 | score=13 | source=gov24_food_business_report | chunk=evchunk_9dddfe6a5ea01c
+- 영업자 지위승계 신고 --handled_by--> 식품위생 업무 | score=16 | source=easylaw_839_body_ov_csmSeq_839_ccfNo_5_cciNo_2_cnpClsNo_1 | chunk=evchunk_47839ca3479213
+- 건물 소유자와 관리인 권한 확인 --handled_by--> 건축물대장 및 건축물 용도 업무 | score=7 | source=easylaw_839_body_ov_csmSeq_839_ccfNo_2_cciNo_2_cnpClsNo_1 | chunk=evchunk_a7c37fb7a7bc75
+- 기존 업소 행정처분 이력 확인 --handled_by--> 식품위생 업무 | score=7 | source=easylaw_1966_body_asylaw_go_kr_CSP_CsmMain_laf_csmSeq_1966 | chunk=evchunk_3831057c287364
+- 주류 판매 가능 업종 및 일반음식점 전환 여부 확인 --handled_by--> 식품위생 업무 | score=7 | source=easylaw_706_body_ov_csmSeq_706_ccfNo_3_cciNo_3_cnpClsNo_2 | chunk=evchunk_a99cc454674dc8
+- 안전시설등 완비증명서 필요 여부 확인 --handled_by--> 소방 안전 업무 | score=7 | source=easylaw_706_body_ov_csmSeq_706_ccfNo_3_cciNo_2_cnpClsNo_1 | chunk=evchunk_9c039039c954f7
+- 옥외광고물 등의 표시허가(신고) --handled_by--> 옥외광고물 관리 업무 | score=16 | source=gov24_outdoor_ad_permit_report | chunk=evchunk_7616b6dab8f4a8
+- 간판 규격 위치 표시방법 확인 --handled_by--> 옥외광고물 관리 업무 | score=6 | source=law_옥외광고물_등의_관리와_옥외광고산업_진흥에_관한_법률_시행령 | chunk=evchunk_35f401cc3a7286
+- 도로점용허가 --handled_by--> 도로점용 업무 | score=15 | source=law_도로법_시행령 | chunk=evchunk_5200a476545e97
+- 사업자등록 신청 --handled_by--> 세무 업무 | score=15 | source=easylaw_1966_body_asylaw_go_kr_CSP_CsmMain_laf_csmSeq_1966 | chunk=evchunk_3831057c287364
+- 통신판매업신고 --handled_by--> 통신판매 및 지역경제 업무 | score=12 | source=gov24_ecommerce_report | chunk=evchunk_71b218a9595989
+- 건축물대장 발급 및 열람 --precedes--> 건축물 용도 판정 | score=8 | source=easylaw_839_body_fNo_2_cciNo_1_cnpClsNo_1_menuType_cnpcls | chunk=evchunk_57d91c28803dc8
+- 건축물 용도 판정 --precedes--> 위반건축물 여부 확인 | score=6 | source=easylaw_839_unknown_9_ccfNo_2_cciNo_1_cnpClsNo_1_search_put | chunk=evchunk_7f74b8f94a253c
+- 기존 업소 행정처분 이력 확인 --precedes--> 건물 소유자와 관리인 권한 확인 | score=7 | source=easylaw_1451_body_v_csmSeq_1451_ccfNo_2_cciNo_2_cnpClsNo_1 | chunk=evchunk_91b837dd51fac9
+- 위생교육 이수 --precedes--> 영업신고 신청 | score=23 | source=easylaw_1966_body_v_csmSeq_1966_ccfNo_2_cciNo_1_cnpClsNo_1 | chunk=evchunk_efba37d57587f2
+- 건강진단결과서 발급 --precedes--> 영업신고 신청 | score=13 | source=easylaw_1966_body_v_csmSeq_1966_ccfNo_2_cciNo_1_cnpClsNo_1 | chunk=evchunk_efba37d57587f2
+- 임대차계약서 및 신분증 준비 --precedes--> 영업신고 신청 | score=12 | source=easylaw_1966_body_asylaw_go_kr_CSP_CsmMain_laf_csmSeq_1966 | chunk=evchunk_3831057c287364
+- 안전시설등 완비증명서 필요 여부 확인 --precedes--> 영업신고 신청 | score=13 | source=easylaw_1966_body_asylaw_go_kr_CSP_CsmMain_laf_csmSeq_1966 | chunk=evchunk_3831057c287364
+- 영업신고 준비 --precedes--> 영업신고 신청 | score=12 | source=easylaw_1966_body_asylaw_go_kr_CSP_CsmMain_laf_csmSeq_1966 | chunk=evchunk_d54b6f801b461d
+- 영업신고 신청 --precedes--> 영업신고증 발급 | score=13 | source=easylaw_1966_body_asylaw_go_kr_CSP_CsmMain_laf_csmSeq_1966 | chunk=evchunk_3831057c287364
+- 영업신고증 발급 --precedes--> 사업자등록 신청 | score=16 | source=easylaw_1009_body_v_csmSeq_1009_ccfNo_2_cciNo_3_cnpClsNo_1 | chunk=evchunk_fcfdd03d578288
+- 사업자등록 신청 --precedes--> 사업자등록증 발급 | score=23 | source=easylaw_1009_body_v_csmSeq_1009_ccfNo_2_cciNo_3_cnpClsNo_1 | chunk=evchunk_c77c37d8ea0839
+- 주류 판매 여부 확인 --precedes--> 일반음식점 전환 여부 확인 | score=6 | source=easylaw_706_body_ov_csmSeq_706_ccfNo_3_cciNo_2_cnpClsNo_1 | chunk=evchunk_9c039039c954f7
+- 일반음식점 전환 여부 확인 --precedes--> 영업신고 신청 | score=13 | source=easylaw_1966_body_asylaw_go_kr_CSP_CsmMain_laf_csmSeq_1966 | chunk=evchunk_3831057c287364
+- 도로점용허가 대상 확인 --precedes--> 도로점용허가 신청 | score=12 | source=gov24_road_occupation_permit | chunk=evchunk_bd7db50425da39
+- 건축물대장 확인(용도 및 위반 여부) --requires_prerequisite--> 계약 직전 주소 후보 확정 | score=6 | source=easylaw_1973_body_v_csmSeq_1973_ccfNo_4_cciNo_1_cnpClsNo_1 | chunk=evchunk_adc182d8f5f808
+- 안전시설등 완비증명서 --requires_prerequisite--> 임대차계약서 또는 시설사용계약서 | score=16 | source=gov24_food_business_report | chunk=evchunk_4be61814be5dcf
+- 안전시설등 완비증명서 --requires_prerequisite--> 건축물대장 용도 확인 | score=17 | source=easylaw_633_body_ov_csmSeq_633_ccfNo_3_cciNo_2_cnpClsNo_1 | chunk=evchunk_ed72748e4bff62
+- 안전시설등 완비증명서 --requires_prerequisite--> 안전시설등 완비증명서 필요 여부 확인 | score=16 | source=gov24_food_business_report | chunk=evchunk_4be61814be5dcf
+- 안전시설등 완비증명서 --requires_prerequisite--> 소방시설 현장 실사 준비 | score=18 | source=easylaw_839_body_ov_csmSeq_839_ccfNo_3_cciNo_1_cnpClsNo_2 | chunk=evchunk_f73bd1961a7b70
+- 건강진단결과서 --requires_prerequisite--> 창업자 및 종업원 인적사항 확인 | score=11 | source=easylaw_633_body_ov_csmSeq_633_ccfNo_3_cciNo_2_cnpClsNo_1 | chunk=evchunk_a7b6a5c7a784d2
+- 건강진단결과서 --requires_prerequisite--> 보건소 또는 지정 의료기관 방문 | score=13 | source=easylaw_1966_body_v_csmSeq_1966_ccfNo_2_cciNo_1_cnpClsNo_1 | chunk=evchunk_efba37d57587f2
+- 액화석유가스 완성검사필증 --requires_prerequisite--> 임대차계약서 또는 시설사용계약서 | score=7 | source=gov24_food_business_report | chunk=evchunk_4be61814be5dcf
+- 액화석유가스 완성검사필증 --requires_prerequisite--> LPG 사용 여부 확인 | score=6 | source=easylaw_1966_body_v_csmSeq_1966_ccfNo_1_cciNo_3_cnpClsNo_2 | chunk=evchunk_bd4f223f0b6fbf
+- 위생교육 수료증 --requires_prerequisite--> 창업자 인적사항 확인 | score=12 | source=easylaw_1009_body_v_csmSeq_1009_ccfNo_2_cciNo_1_cnpClsNo_1 | chunk=evchunk_4d58aa83787946
+- 위생교육 수료증 --requires_prerequisite--> 업종별 위생교육 기관 선택 | score=13 | source=easylaw_1966_body_asylaw_go_kr_CSP_CsmMain_laf_csmSeq_1966 | chunk=evchunk_d54b6f801b461d
+- 식품접객업 영업신고증 --requires_prerequisite--> 위생교육 수료증 | score=14 | source=easylaw_1966_qna_o_1_cciNo_1_cnpClsNo_1_menuType_onhunqna | chunk=evchunk_e2a0560dc585fd
+- 식품접객업 영업신고증 --requires_prerequisite--> 건강진단결과서 | score=12 | source=easylaw_1966_body_v_csmSeq_1966_ccfNo_2_cciNo_1_cnpClsNo_1 | chunk=evchunk_efba37d57587f2
+- 식품접객업 영업신고증 --requires_prerequisite--> 임대차계약서 또는 시설사용계약서 | score=6 | source=law_체육시설의_설치ㆍ이용에_관한_법률_시행규칙 | chunk=evchunk_47f4860253c5d5
+- 식품접객업 영업신고증 --requires_prerequisite--> 신분증 | score=11 | source=easylaw_706_body_ov_csmSeq_706_ccfNo_3_cciNo_2_cnpClsNo_2 | chunk=evchunk_fd0b4ccbb0ee82
+- 식품접객업 영업신고증 --requires_prerequisite--> 안전시설등 완비증명서 | score=17 | source=law_음악산업진흥에_관한_법률_시행규칙 | chunk=evchunk_f88391b0966dc1
+- 식품접객업 영업신고증 --requires_prerequisite--> 기존 업소 행정처분 이력 확인 | score=6 | source=easylaw_1966_body_asylaw_go_kr_CSP_CsmMain_laf_csmSeq_1966 | chunk=evchunk_3831057c287364
+- 사업자등록증 --requires_prerequisite--> 식품접객업 영업신고증 | score=16 | source=easylaw_1966_body_asylaw_go_kr_CSP_CsmMain_laf_csmSeq_1966 | chunk=evchunk_3831057c287364
+- 사업자등록증 --requires_prerequisite--> 임대차계약서 | score=23 | source=easylaw_1140_body_v_csmSeq_1140_ccfNo_2_cciNo_2_cnpClsNo_2 | chunk=evchunk_ed252b78d9fe02
+- 사업자등록증 --requires_prerequisite--> 사업개시일부터 20일 이내 신청기한 확인 | score=19 | source=easylaw_1140_body_v_csmSeq_1140_ccfNo_2_cciNo_2_cnpClsNo_2 | chunk=evchunk_ed252b78d9fe02
+- 옥외광고물(간판) 허가 및 신고증 --requires_prerequisite--> 사업자등록증 | score=15 | source=easylaw_1966_body_asylaw_go_kr_CSP_CsmMain_laf_csmSeq_1966 | chunk=evchunk_3831057c287364
+- 도로점용허가 --requires_prerequisite--> 사업자등록증 | score=13 | source=easylaw_1966_body_asylaw_go_kr_CSP_CsmMain_laf_csmSeq_1966 | chunk=evchunk_3831057c287364
+- 도로점용허가 --requires_prerequisite--> 위치도 및 평면도 | score=12 | source=law_도로법 | chunk=evchunk_b42991b8ffa9d0
+- 도로점용허가 --requires_prerequisite--> 도로 점용 위치 및 면적 확인 | score=13 | source=law_도로법 | chunk=evchunk_b42991b8ffa9d0

@@ -11,8 +11,10 @@ cd backend
 cp .env.example .env
 
 LLM_API_KEY=
-LLM_BASE_URL=https://api.openai.com/v1
-LLM_MODEL=gpt-4o-mini
+LLM_BASE_URL=https://gms.ssafy.io/gmsapi/api.openai.com/v1
+LLM_MODEL=gpt-5.5
+LLM_REASONING_EFFORT=low
+LLM_MAX_OUTPUT_TOKENS=1024
 LLM_TIMEOUT_SECONDS=12
 ENABLE_LLM=true
 ENABLE_DEMO_FALLBACK=true
@@ -20,7 +22,7 @@ ENABLE_GRAPH_RAG=false
 GRAPH_RAG_BASE_URL=
 ```
 
-`OPENAI_API_KEY`도 fallback으로 인식합니다.
+`GMS_API_KEY`도 `LLM_API_KEY`의 fallback으로 인식합니다.
 `backend/.env`는 서버 시작 시 자동으로 읽습니다.
 
 ## 연결 지점

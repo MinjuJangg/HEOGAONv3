@@ -8,6 +8,7 @@ from urllib.error import HTTPError, URLError
 
 from app.core.config import Settings, settings
 from app.data.catalog import FLOW_SCHEMA_VERSION
+from app.services.local_graph_rag import LocalGraphRagRetriever, local_graph_rag
 from app.services.output_guard import clean_payload, mask_sensitive_text
 
 
@@ -19,12 +20,17 @@ class GraphRagService:
     fall back to the local MVP catalog.
     """
 
-    def __init__(self, config: Settings = settings) -> None:
+    def __init__(
+        self,
+        config: Settings = settings,
+        local_graph: LocalGraphRagRetriever = local_graph_rag,
+    ) -> None:
         self.config = config
+        self.local_graph = local_graph
 
     @property
     def available(self) -> bool:
-        return self.config.graph_rag_available
+        return self.config.graph_rag_available or self.local_graph.available
 
     def build_documents(self, case: dict[str, Any]) -> list[dict[str, Any]] | None:
         result = self._retrieve("documents", case)
@@ -78,9 +84,6 @@ class GraphRagService:
         return evidence
 
     def _retrieve(self, kind: str, case: dict[str, Any], extra: dict[str, Any] | None = None) -> Any:
-        if not self.available:
-            return None
-
         payload = {
             "kind": kind,
             "schemaVersion": FLOW_SCHEMA_VERSION,
@@ -89,6 +92,21 @@ class GraphRagService:
         if extra:
             payload.update(extra)
 
+        remote_result = None
+        if self.config.graph_rag_available:
+            remote_result = self._retrieve_remote(kind, case, payload)
+            if self._result_has_items(kind, remote_result):
+                case.setdefault("ai", {})["graphRagBackend"] = "remote"
+                return remote_result
+
+        local_result = self.local_graph.retrieve(kind, case, extra=extra)
+        if self._result_has_items(kind, local_result):
+            case.setdefault("ai", {})["graphRagBackend"] = "local_files"
+            return local_result
+
+        return remote_result
+
+    def _retrieve_remote(self, kind: str, case: dict[str, Any], payload: dict[str, Any]) -> Any:
         try:
             endpoint = f"{self.config.graph_rag_base_url}/retrieve"
             body = json.dumps(clean_payload(payload), ensure_ascii=False).encode("utf-8")
@@ -106,6 +124,16 @@ class GraphRagService:
         except (HTTPError, URLError, TimeoutError, json.JSONDecodeError, OSError) as exc:
             self._warn(case, f"GraphRAG {kind} fallback: {exc.__class__.__name__}")
             return None
+
+    @classmethod
+    def _result_has_items(cls, kind: str, result: Any) -> bool:
+        keys_by_kind = {
+            "documents": ("documents",),
+            "inquiries": ("inquiryTasks", "tasks", "inquiries"),
+            "questions": ("questions", "questionPlan"),
+            "evidence": ("evidence", "sources", "items"),
+        }
+        return bool(cls._extract_list(result, *keys_by_kind.get(kind, ("items",))))
 
     @staticmethod
     def _case_payload(case: dict[str, Any]) -> dict[str, Any]:

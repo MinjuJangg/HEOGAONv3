@@ -1,0 +1,396 @@
+version: 0.1
+name: cafe_restaurant_permit_mvp
+description: >
+  Ontology contract for an evidence-grounded GraphRAG MVP covering cafe and
+  restaurant startup permit decisions.
+
+scope:
+  included_businesses:
+    - 카페
+    - 디저트카페
+    - 커피전문점
+    - 휴게음식점
+    - 일반음식점
+    - 제과점
+    - 즉석판매제조가공업
+  included_conditions:
+    - 간판 설치
+    - 배달 판매
+    - 온라인 판매
+    - 주류 판매
+    - 외부 공간 사용
+    - 도로ㆍ보도 점용
+    - 지하수 사용
+    - LPG 사용
+    - 어린이놀이시설 설치
+    - 건축물 용도 확인
+  excluded_for_mvp:
+    - 숙박업
+    - 미용업
+    - 체육시설업
+    - 노래연습장업
+    - 담배소매업
+    - 건강기능식품 전문판매업
+
+competency_questions:
+  - id: cq_001
+    question: 카페 창업은 어떤 행정 업종으로 매핑되는가?
+    expected_path: business_alias -> admin_business_type
+  - id: cq_002
+    question: 휴게음식점영업을 하려면 어떤 신고가 필요한가?
+    expected_path: admin_business_type -> permit_service
+  - id: cq_003
+    question: 식품관련영업신고에 필요한 제출서류는 무엇인가?
+    expected_path: permit_service -> document
+  - id: cq_004
+    question: 담당공무원이 확인하는 서류나 항목은 무엇인가?
+    expected_path: permit_service -> check_item
+  - id: cq_005
+    question: 간판 설치 시 추가 신고나 허가가 필요한가?
+    expected_path: condition_module -> permit_service
+  - id: cq_006
+    question: 주류 판매 조건은 휴게음식점/일반음식점 판정에 어떤 영향을 주는가?
+    expected_path: condition_module -> admin_business_type
+  - id: cq_007
+    question: 건축물 용도 확인은 어떤 확인사항과 담당 기능으로 연결되는가?
+    expected_path: condition_module -> check_item -> department_function
+  - id: cq_008
+    question: 영업신고 전 먼저 준비해야 하는 절차는 무엇인가?
+    expected_path: procedure_step -> procedure_step
+  - id: cq_009
+    question: 특정 claim의 공식 근거 문서와 근거 문장은 무엇인가?
+    expected_path: claim -> evidence_chunk
+
+node_types:
+  business_alias:
+    description: User-facing business expressions.
+    examples: [카페, 디저트카페, 커피전문점, 음식점]
+  admin_business_type:
+    description: Legal or administrative business categories.
+    examples: [휴게음식점영업, 일반음식점영업, 제과점영업, 즉석판매제조ㆍ가공업]
+  condition_module:
+    description: User situation or facility/sales condition that can trigger a permit, document, check, or risk.
+    examples: [간판 설치, 배달 판매, 주류 판매, 지하수 사용]
+  permit_service:
+    description: Official civil service, report, registration, permit, or designation.
+    examples: [식품관련영업신고, 통신판매업신고, 옥외광고물 등의 표시허가(신고), 도로점용허가]
+  document:
+    description: Required submission, certificate, application form, or attachment.
+    examples: [위생교육이수증, 건강진단결과서, 영업신고서, 안전시설등 완비증명서]
+  check_item:
+    description: Item that must be checked by the user or an official.
+    examples: [건축물 용도 확인, 토지이용계획 확인, 액화석유가스 사용시설완성검사 확인]
+  department_function:
+    description: Administrative function, not a specific local office name.
+    examples: [식품위생 업무, 건축물 용도 업무, 옥외광고물 관리 업무, 도로점용 업무]
+  legal_basis:
+    description: Law, enforcement decree/rule, article, paragraph, or attached form.
+    examples: [식품위생법 시행규칙 제42조, 식품위생법 제37조]
+  procedure_step:
+    description: Ordered preparation or application step.
+    examples: [위생교육 이수, 건강진단결과서 발급, 영업신고 신청]
+  risk_flag:
+    description: Warning, exclusion, or official-confirmation-needed flag.
+    examples: [구청 확인 필요, 휴게음식점 주류 판매 제한, 건축물 용도 부적합 가능성]
+  source_document:
+    description: Official source page or law payload.
+    examples: [정부24 식품관련영업신고, 식품위생법 시행규칙, 생활법령 음식점 창업]
+  evidence_chunk:
+    description: Chunked official source text used for grounding claims.
+    examples: [chunk_...]
+
+predicates:
+  maps_to:
+    description: User expression maps to an administrative business type.
+    allowed_pairs:
+      - [business_alias, admin_business_type]
+  requires_permit:
+    description: Administrative business type requires an official permit/report service.
+    allowed_pairs:
+      - [admin_business_type, permit_service]
+  triggers:
+    description: A condition triggers an additional permit, check, document, admin type, or risk.
+    allowed_pairs:
+      - [condition_module, permit_service]
+      - [condition_module, check_item]
+      - [condition_module, document]
+      - [condition_module, admin_business_type]
+      - [condition_module, risk_flag]
+  requires_document:
+    description: Permit service requires a submitted document.
+    allowed_pairs:
+      - [permit_service, document]
+      - [admin_business_type, document]
+  needs_check:
+    description: Permit service, condition, or admin type requires a check item.
+    allowed_pairs:
+      - [permit_service, check_item]
+      - [condition_module, check_item]
+      - [admin_business_type, check_item]
+  handled_by:
+    description: Permit service or check item is handled by an administrative function.
+    allowed_pairs:
+      - [permit_service, department_function]
+      - [check_item, department_function]
+  based_on:
+    description: Node is grounded in a legal basis.
+    allowed_pairs:
+      - [permit_service, legal_basis]
+      - [document, legal_basis]
+      - [check_item, legal_basis]
+      - [condition_module, legal_basis]
+      - [admin_business_type, legal_basis]
+  precedes:
+    description: Procedure step occurs before another procedure step.
+    allowed_pairs:
+      - [procedure_step, procedure_step]
+  raises_risk:
+    description: Node introduces a caution or official-confirmation-needed flag.
+    allowed_pairs:
+      - [condition_module, risk_flag]
+      - [admin_business_type, risk_flag]
+      - [permit_service, risk_flag]
+  has_source:
+    description: Node or source document is supported by a source document.
+    allowed_pairs:
+      - [permit_service, source_document]
+      - [admin_business_type, source_document]
+      - [condition_module, source_document]
+      - [document, source_document]
+      - [check_item, source_document]
+      - [legal_basis, source_document]
+  supported_by:
+    description: Claim or graph edge is grounded by an evidence chunk.
+    allowed_pairs:
+      - [source_document, evidence_chunk]
+
+claim_schema:
+  required_fields:
+    - claim_id
+    - subject_type
+    - subject_name
+    - predicate
+    - object_type
+    - object_name
+    - assertion_level
+    - authority_level
+    - review_status
+    - confidence
+    - source_document_id
+    - chunk_id
+    - evidence_text
+  optional_fields:
+    - condition_text
+    - extraction_method
+    - normalized_subject_name
+    - normalized_object_name
+    - notes
+  assertion_level:
+    allowed_values: [explicit, conditional, inferred]
+    default: explicit
+  authority_level:
+    allowed_values: [official, official_guide, rule_seed, public_case]
+  review_status:
+    allowed_values: [official_document, rule_seed, llm_inferred, needs_review, rejected]
+  confidence_policy:
+    parser_official: 0.90
+    llm_explicit_with_exact_evidence: 0.80
+    llm_conditional_with_exact_evidence: 0.75
+    rule_seed_alias: 0.70
+    inferred_or_weak_evidence: 0.50
+
+validation_rules:
+  - predicate_must_be_declared
+  - subject_object_pair_must_be_allowed
+  - source_document_id_must_exist
+  - chunk_id_must_exist
+  - evidence_text_must_be_substring_of_chunk
+  - official_document_requires_authority_level_official_or_official_guide
+  - llm_inferred_cannot_be_materialized_without_review_for_requires_permit
+  - rejected_claims_must_not_be_compiled_to_graph
+
+seed_nodes:
+  business_alias:
+    - 카페
+    - 디저트카페
+    - 커피전문점
+    - 음식점
+    - 일반 음식점
+  admin_business_type:
+    - 휴게음식점영업
+    - 일반음식점영업
+    - 제과점영업
+    - 즉석판매제조ㆍ가공업
+  condition_module:
+    - 간판 설치
+    - 배달 판매
+    - 온라인 판매
+    - 주류 판매
+    - 외부 공간 사용
+    - 도로ㆍ보도 점용
+    - 지하수 사용
+    - LPG 사용
+    - 어린이놀이시설 설치
+    - 건축물 용도 확인
+  permit_service:
+    - 식품관련영업신고
+    - 통신판매업신고
+    - 옥외광고물 등의 표시허가(신고)
+    - 도로점용허가
+
+seed_claims:
+  - subject_type: business_alias
+    subject_name: 카페
+    predicate: maps_to
+    object_type: admin_business_type
+    object_name: 휴게음식점영업
+    assertion_level: inferred
+    authority_level: rule_seed
+    review_status: rule_seed
+    confidence: 0.70
+    condition_text: 일반적인 커피/음료 판매 카페 MVP 기본 매핑
+  - subject_type: business_alias
+    subject_name: 디저트카페
+    predicate: maps_to
+    object_type: admin_business_type
+    object_name: 휴게음식점영업
+    assertion_level: inferred
+    authority_level: rule_seed
+    review_status: rule_seed
+    confidence: 0.70
+    condition_text: 일반적인 음료/디저트 판매 MVP 기본 매핑
+  - subject_type: admin_business_type
+    subject_name: 휴게음식점영업
+    predicate: requires_permit
+    object_type: permit_service
+    object_name: 식품관련영업신고
+    assertion_level: explicit
+    authority_level: rule_seed
+    review_status: rule_seed
+    confidence: 0.80
+  - subject_type: admin_business_type
+    subject_name: 일반음식점영업
+    predicate: requires_permit
+    object_type: permit_service
+    object_name: 식품관련영업신고
+    assertion_level: explicit
+    authority_level: rule_seed
+    review_status: rule_seed
+    confidence: 0.80
+  - subject_type: admin_business_type
+    subject_name: 제과점영업
+    predicate: requires_permit
+    object_type: permit_service
+    object_name: 식품관련영업신고
+    assertion_level: explicit
+    authority_level: rule_seed
+    review_status: rule_seed
+    confidence: 0.75
+    condition_text: 제과점영업도 식품 관련 영업 신고 흐름에서 확인
+  - subject_type: admin_business_type
+    subject_name: 즉석판매제조·가공업
+    predicate: requires_permit
+    object_type: permit_service
+    object_name: 식품관련영업신고
+    assertion_level: explicit
+    authority_level: rule_seed
+    review_status: rule_seed
+    confidence: 0.72
+    condition_text: 즉석판매제조·가공업은 식품 관련 영업 신고 여부 확인
+  - subject_type: condition_module
+    subject_name: 간판 설치
+    predicate: triggers
+    object_type: permit_service
+    object_name: 옥외광고물 등의 표시허가(신고)
+    assertion_level: conditional
+    authority_level: rule_seed
+    review_status: rule_seed
+    confidence: 0.75
+  - subject_type: condition_module
+    subject_name: 주류 판매
+    predicate: needs_check
+    object_type: check_item
+    object_name: 주류 판매 가능 업종 및 일반음식점 전환 여부 확인
+    assertion_level: conditional
+    authority_level: rule_seed
+    review_status: rule_seed
+    confidence: 0.65
+    condition_text: 주류 판매 의사가 있으면 업종과 별도 요건 확인 필요
+  - subject_type: condition_module
+    subject_name: LPG 사용
+    predicate: needs_check
+    object_type: check_item
+    object_name: 액화석유가스 사용시설완성검사증명서 필요 여부 확인
+    assertion_level: conditional
+    authority_level: rule_seed
+    review_status: rule_seed
+    confidence: 0.70
+    condition_text: LPG 가스 사용 의사가 있으면 가스시설 확인 필요
+  - subject_type: condition_module
+    subject_name: 어린이놀이시설
+    predicate: needs_check
+    object_type: check_item
+    object_name: 어린이놀이시설 검사합격증 필요 여부 확인
+    assertion_level: conditional
+    authority_level: rule_seed
+    review_status: rule_seed
+    confidence: 0.70
+    condition_text: 어린이놀이시설을 두는 경우 검사합격증 등 추가 확인 필요
+  - subject_type: condition_module
+    subject_name: 푸드트럭
+    predicate: triggers
+    object_type: permit_service
+    object_name: 식품관련영업신고
+    assertion_level: conditional
+    authority_level: rule_seed
+    review_status: rule_seed
+    confidence: 0.62
+    condition_text: 음식판매자동차 형태는 식품 관련 영업 신고 흐름으로 우선 라우팅
+  - subject_type: condition_module
+    subject_name: 푸드트럭
+    predicate: needs_check
+    object_type: check_item
+    object_name: 음식판매자동차 및 허용 업종 확인
+    assertion_level: conditional
+    authority_level: rule_seed
+    review_status: rule_seed
+    confidence: 0.70
+    condition_text: 푸드트럭은 차량 형태와 영업 가능 장소 확인 필요
+  - subject_type: condition_module
+    subject_name: 공유주방
+    predicate: needs_check
+    object_type: check_item
+    object_name: 공유주방 운영업 또는 입점 형태 확인
+    assertion_level: conditional
+    authority_level: rule_seed
+    review_status: rule_seed
+    confidence: 0.70
+    condition_text: 공유주방은 운영자와 입점자의 역할 및 신고 형태 확인 필요
+  - subject_type: condition_module
+    subject_name: 공유주방
+    predicate: triggers
+    object_type: permit_service
+    object_name: 식품관련영업신고
+    assertion_level: conditional
+    authority_level: rule_seed
+    review_status: rule_seed
+    confidence: 0.62
+    condition_text: 공유주방 입점 영업도 식품 관련 영업 신고 흐름으로 우선 라우팅
+  - subject_type: condition_module
+    subject_name: 온라인 판매
+    predicate: triggers
+    object_type: permit_service
+    object_name: 통신판매업신고
+    assertion_level: conditional
+    authority_level: rule_seed
+    review_status: rule_seed
+    confidence: 0.75
+  - subject_type: condition_module
+    subject_name: 도로ㆍ보도 점용
+    predicate: triggers
+    object_type: permit_service
+    object_name: 도로점용허가
+    assertion_level: conditional
+    authority_level: rule_seed
+    review_status: rule_seed
+    confidence: 0.75
