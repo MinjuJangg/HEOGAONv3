@@ -1189,16 +1189,117 @@ def summarize_past_businesses(past: dict[str, Any]) -> dict[str, Any]:
     matches = past.get("matches") or []
     return {
         "status": past.get("status", "ok"),
+        "index": past.get("index") or "",
+        "queryAddress": past.get("queryAddress") or "",
+        "addressKeys": past.get("addressKeys") or [],
         "count": len(matches),
         "sample": [
             {
                 "businessName": item.get("business_name") or item.get("bplcNm") or "",
-                "businessType": item.get("business_type") or item.get("siteWhlAddr") or "",
+                "businessType": item.get("canonical_business_type") or item.get("business_type") or "",
+                "licenseDate": item.get("license_date") or "",
                 "status": item.get("status") or item.get("dtlStateNm") or "",
-                "address": item.get("address") or item.get("rdnWhlAddr") or item.get("siteWhlAddr") or "",
+                "detailStatus": item.get("detail_status") or "",
+                "areaM2": item.get("area_m2"),
+                "address": item.get("road_address") or item.get("lot_address") or item.get("address") or item.get("rdnWhlAddr") or item.get("siteWhlAddr") or "",
             }
-            for item in matches[:3]
+            for item in matches[:5]
         ],
+    }
+
+
+def summarize_combined_past_businesses(all_past: dict[str, Any], same_or_similar_past: dict[str, Any] | None = None) -> dict[str, Any]:
+    all_summary = summarize_past_businesses(all_past)
+    same_summary = summarize_past_businesses(same_or_similar_past or {"status": "skipped", "matches": []})
+    status = all_summary.get("status") or same_summary.get("status") or "ok"
+    if status == "ok":
+        if all_summary.get("count", 0) > 0:
+            label = "matched"
+        else:
+            label = "no_match"
+    else:
+        label = status
+    return {
+        **all_summary,
+        "status": status,
+        "label": label,
+        "allCount": all_summary.get("count", 0),
+        "sameOrSimilarCount": same_summary.get("count", 0),
+        "sameOrSimilarSample": same_summary.get("sample", []),
+        "sameOrSimilarStatus": same_summary.get("status"),
+    }
+
+
+def infer_past_lookup_business_type(slots: dict[str, Any]) -> str:
+    business = slots.get("business") or {}
+    candidates = business.get("candidateTypes") or []
+    if candidates:
+        return str(candidates[0] or "")
+
+    text = " ".join(
+        str(value or "")
+        for value in [
+            business.get("rawText"),
+            business.get("concept"),
+            business.get("requestedType"),
+            *(business.get("salesItems") or []),
+        ]
+    )
+    compact = re.sub(r"\s+", "", text).lower()
+    if any(token in compact for token in ["일반음식", "일반음식점", "고깃집", "고기집", "삼겹살", "식당", "주점", "호프"]):
+        return BUSINESS_TYPES["general_restaurant"]
+    if any(token in compact for token in ["카페", "커피", "디저트", "음료", "휴게음식", "휴게음식점"]):
+        return BUSINESS_TYPES["cafe"]
+    if any(token in compact for token in ["제과", "제과점", "베이커리", "빵집"]):
+        return BUSINESS_TYPES["bakery"]
+    return ""
+
+
+def similar_business_types_for_lookup(business_type: str) -> list[str]:
+    food_types = [
+        BUSINESS_TYPES["general_restaurant"],
+        BUSINESS_TYPES["cafe"],
+        BUSINESS_TYPES["bakery"],
+    ]
+    if business_type in food_types:
+        return [business_type, *[item for item in food_types if item != business_type]]
+    return [business_type] if business_type else []
+
+
+def query_same_or_similar_past_businesses(index: Path, address: str, limit: int, business_type: str) -> dict[str, Any] | None:
+    lookup_types = similar_business_types_for_lookup(business_type)
+    if not lookup_types:
+        return None
+
+    merged_matches: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, str]] = set()
+    last_result: dict[str, Any] | None = None
+    for lookup_type in lookup_types:
+        current = query_past_businesses(index, address, limit, lookup_type)
+        last_result = current
+        if current.get("status") != "ok":
+            return current
+        for item in current.get("matches") or []:
+            key = (
+                str(item.get("license_no") or ""),
+                str(item.get("business_name") or ""),
+                str(item.get("road_address") or item.get("lot_address") or ""),
+            )
+            if key in seen:
+                continue
+            seen.add(key)
+            merged_matches.append(item)
+            if len(merged_matches) >= limit:
+                break
+        if len(merged_matches) >= limit:
+            break
+
+    return {
+        **(last_result or {}),
+        "status": "ok",
+        "queryAddress": address,
+        "similarBusinessTypes": lookup_types,
+        "matches": merged_matches,
     }
 
 
@@ -1223,12 +1324,11 @@ def run_external_checks(slots: dict[str, Any], api_plan: dict[str, Any]) -> dict
             result["buildingLedger"] = {"status": "error", "reason": "api_failed", "message": f"{type(exc).__name__}: {exc}"}
 
     if api_plan.get("canRunPastBusinessLookup") and address and query_past_businesses is not None and DEFAULT_INDEX is not None:
-        business_type = ""
-        candidates = slots.get("business", {}).get("candidateTypes") or []
-        if candidates:
-            business_type = candidates[0]
+        business_type = infer_past_lookup_business_type(slots)
         try:
-            result["pastBusinessLookup"] = summarize_past_businesses(query_past_businesses(DEFAULT_INDEX, address, 10, business_type))
+            all_past = query_past_businesses(DEFAULT_INDEX, address, 10, "")
+            same_or_similar_past = query_same_or_similar_past_businesses(DEFAULT_INDEX, address, 10, business_type)
+            result["pastBusinessLookup"] = summarize_combined_past_businesses(all_past, same_or_similar_past)
         except Exception as exc:
             result["pastBusinessLookup"] = {"status": "error", "reason": "lookup_failed", "message": f"{type(exc).__name__}: {exc}"}
 

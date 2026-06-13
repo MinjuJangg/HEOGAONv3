@@ -72,6 +72,33 @@ class CaseFlowService:
         self.sync_minju_outputs(case)
         return case
 
+    @staticmethod
+    def _capture_frontend_building(case: dict[str, Any], input_payload: dict[str, Any]) -> None:
+        """주소 단계에서 프론트가 직접 호출해 가져온 건축물대장 raw 데이터를 보관한다.
+
+        백엔드는 이 데이터를 해석만 하고(JUSO/data.go.kr 재호출 안 함), minju 브리지가
+        externalChecks.buildingLedger 로 변환해 흐름에 반영한다.
+        """
+        building = input_payload.get("building")
+        if not isinstance(building, dict):
+            return
+
+        records = building.get("records") if isinstance(building.get("records"), dict) else {}
+        address = input_payload.get("address") if isinstance(input_payload.get("address"), dict) else {}
+        case["frontendBuilding"] = {
+            "records": {
+                "title": records.get("title") or [],
+                "floor": records.get("floor") or [],
+                "unit": records.get("unit") or [],
+                "landZone": records.get("landZone") or [],
+            },
+            "buildingParams": building.get("buildingParams") or {},
+            "address": {
+                "roadAddress": address.get("roadAddress") or "",
+                "jibunAddress": address.get("jibunAddress") or "",
+            },
+        }
+
     def apply_turn(self, case_id: str, input_payload: dict[str, Any]) -> dict[str, Any]:
         case = self.repository.get(case_id)
         if not case:
@@ -84,6 +111,7 @@ class CaseFlowService:
         if input_type == "slot_answer":
             if case["machineState"] != "NEEDS_INFO":
                 raise FlowInputError("현재 단계에서는 질문 답변을 받을 수 없습니다.")
+            self._capture_frontend_building(case, input_payload)
             self.questions.apply_slot_answer(case, input_payload)
             if case["questionLoop"].pop("retryCurrent", False):
                 return case

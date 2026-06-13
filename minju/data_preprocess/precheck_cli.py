@@ -13,6 +13,10 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+CURRENT_DIR = Path(__file__).resolve().parent
+if str(CURRENT_DIR) not in sys.path:
+    sys.path.insert(0, str(CURRENT_DIR))
+
 from precheck_common import (
     compact_address_key,
     extract_district,
@@ -24,7 +28,28 @@ from precheck_common import (
 
 
 ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_INDEX = ROOT / "data" / "processed" / "precheck" / "seoul_localdata.sqlite"
+
+
+def resolve_default_index() -> Path:
+    env_value = (
+        os.getenv("SEOUL_LOCALDATA_INDEX")
+        or os.getenv("HEOGAON_LOCALDATA_INDEX")
+        or os.getenv("LOCALDATA_SQLITE_PATH")
+    )
+    if env_value:
+        return Path(env_value).expanduser()
+
+    candidates = [
+        ROOT / "data" / "processed" / "precheck" / "seoul_localdata.sqlite",
+        Path.home() / "Desktop" / "New project 2" / "data" / "processed" / "precheck" / "seoul_localdata.sqlite",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return candidates[0]
+
+
+DEFAULT_INDEX = resolve_default_index()
 DEFAULT_CACHE = ROOT / "data" / "cache" / "precheck"
 
 JUSO_URL = "https://business.juso.go.kr/addrlink/addrLinkApi.do"

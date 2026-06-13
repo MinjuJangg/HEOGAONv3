@@ -5,12 +5,12 @@ import { ArrowUpIcon } from "@/components/common/Icon";
 import { BrandLogo } from "@/components/shell/BrandLogo";
 
 const FOOD_SERVICE_PROMPTS = [
-  "연남동에서 디저트 카페를 열고 싶어요",
-  "음식점 자리를 인수해서 시작하려고 해요",
-  "포장 전문 매장을 준비 중이에요",
-  "카페에서 주류도 팔 수 있는지 알고 싶어요",
-  "간판까지 같이 준비해야 해요",
-  "배달 판매도 함께 할 예정이에요",
+  "망원동에서 디저트 카페를 열고 싶어요",
+  "일반음식점으로 고깃집을 준비 중이에요",
+  "기존 매장을 인수해서 카페를 시작하려고 해요",
+  "가게 앞에 테이블도 두고 싶어요",
+  "간판 설치까지 같이 준비해야 해요",
+  "배달 판매와 매장 판매를 같이 하려고 해요",
 ];
 
 const PLACEHOLDER_ROTATE_MS = 2800;

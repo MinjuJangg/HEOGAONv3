@@ -357,6 +357,7 @@ class QuestionPlanner:
                 append_condition(case, "signage_planned")
             if field in {"outdoor_location", "outdoor_area"}:
                 append_condition(case, "outdoor_space_planned")
+            self.capture_client_building_ledger(case, input_payload)
 
         case["answers"].append({
             "id": f"answer_{uuid4().hex[:10]}",
@@ -408,6 +409,129 @@ class QuestionPlanner:
             return
         merged = f"{address}, {value}"
         set_slot(case, "exact_address", merged, merged, "도로명/지번 주소 + 층/호수")
+
+    @classmethod
+    def capture_client_building_ledger(cls, case: dict[str, Any], input_payload: dict[str, Any]) -> None:
+        building = input_payload.get("building")
+        if not isinstance(building, dict):
+            return
+
+        summary = cls.summarize_client_building_ledger(building)
+        if not summary:
+            return
+
+        address = input_payload.get("address") if isinstance(input_payload.get("address"), dict) else {}
+        case["clientBuildingLedger"] = {
+            "status": "ok",
+            "source": "frontend_building_api",
+            "roadAddr": address.get("roadAddress") or "",
+            "jibunAddr": address.get("jibunAddress") or "",
+            "summary": summary,
+            "recordCounts": {
+                key: len(cls.list_records((building.get("records") or {}).get(key)))
+                for key in ("title", "floor", "unit", "landZone")
+            },
+        }
+
+        if summary.get("mainPurpsCdNm") and not slot_value(case, "building_use"):
+            set_slot(
+                case,
+                "building_use",
+                summary["mainPurpsCdNm"],
+                summary["mainPurpsCdNm"],
+                "건축물대장 API 주용도",
+            )
+        if summary.get("areaM2") and not slot_value(case, "area"):
+            set_slot(case, "area", f"{summary['areaM2']}㎡", f"{summary['areaM2']}㎡", "건축물대장 API 면적")
+
+    @classmethod
+    def summarize_client_building_ledger(cls, building: dict[str, Any]) -> dict[str, Any]:
+        records = building.get("records") or {}
+        title = cls.first_dict(cls.list_records(records.get("title")))
+        floors = cls.list_records(records.get("floor"))
+        units = cls.list_records(records.get("unit"))
+        zones = cls.list_records(records.get("landZone"))
+
+        summary: dict[str, Any] = {}
+        main_use = cls.first_value([title, *floors, *units], "mainPurpsCdNm", "mainPurps", "purpsCdNm")
+        etc_use = cls.first_value([title, *floors, *units], "etcPurps", "etcPurpsNm")
+        violated = cls.first_value([title], "violYn", "violtYn", "violated")
+        area = cls.first_value([*units, *floors, title], "area", "areaM2", "totArea")
+
+        if main_use:
+            summary["mainPurpsCdNm"] = main_use
+        if etc_use:
+            summary["etcPurps"] = etc_use
+        if violated not in (None, "", []):
+            summary["violated"] = violated
+        if area not in (None, "", []):
+            summary["areaM2"] = area
+
+        floor_uses = cls.floor_use_texts(floors) or cls.floor_use_texts(units)
+        if floor_uses:
+            summary["floorUses"] = floor_uses
+
+        land_zones = cls.zone_texts(zones)
+        if land_zones:
+            summary["landZones"] = land_zones
+
+        return summary
+
+    @staticmethod
+    def list_records(value: Any) -> list[Any]:
+        if isinstance(value, list):
+            return value
+        if value in (None, "", []):
+            return []
+        return [value]
+
+    @staticmethod
+    def first_dict(records: list[Any]) -> dict[str, Any]:
+        return next((item for item in records if isinstance(item, dict)), {})
+
+    @classmethod
+    def first_value(cls, records: list[Any], *keys: str) -> Any:
+        for record in records:
+            if not isinstance(record, dict):
+                continue
+            for key in keys:
+                value = record.get(key)
+                if value not in (None, "", []):
+                    return value
+        return None
+
+    @classmethod
+    def floor_use_texts(cls, records: list[Any]) -> list[str]:
+        texts: list[str] = []
+        for record in records:
+            if not isinstance(record, dict):
+                continue
+            bits = [
+                str(record.get("flrNoNm") or record.get("floor") or record.get("hoNm") or "").strip(),
+                str(record.get("mainPurpsCdNm") or record.get("mainPurps") or "").strip(),
+                str(record.get("etcPurps") or "").strip(),
+            ]
+            text = " ".join(bit for bit in bits if bit)
+            if text and text not in texts:
+                texts.append(text)
+        return texts[:8]
+
+    @staticmethod
+    def zone_texts(records: list[Any]) -> list[str]:
+        texts: list[str] = []
+        for record in records:
+            if not isinstance(record, dict):
+                continue
+            text = str(
+                record.get("jijiguCdNm")
+                or record.get("jijiguGbCdNm")
+                or record.get("etcJijigu")
+                or record.get("landUseZone")
+                or ""
+            ).strip()
+            if text and text not in texts:
+                texts.append(text)
+        return texts[:8]
 
     @staticmethod
     def is_unknown_text(text: str) -> bool:

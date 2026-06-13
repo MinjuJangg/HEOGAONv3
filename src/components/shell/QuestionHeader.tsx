@@ -36,7 +36,6 @@ export function QuestionHeader({
       <div className="question-progress">
         <p className="question-progress-caption">
           <span className="question-progress-label">{progress.label}</span>
-          <span className="question-progress-count">{progress.current}/{progress.total}</span>
         </p>
         <div className="question-progress-track">
           {progress.stages.map((stage, index) => (
@@ -45,6 +44,16 @@ export function QuestionHeader({
               aria-label={stage.label}
               key={stage.key}
             />
+          ))}
+        </div>
+        <div className="question-progress-stage-labels" aria-hidden="true">
+          {progress.stages.map((stage, index) => (
+            <span
+              className={`question-progress-stage-label${index + 1 < progress.current ? " is-complete" : ""}${index + 1 === progress.current ? " is-current" : ""}`}
+              key={stage.key}
+            >
+              {stage.label}
+            </span>
           ))}
         </div>
       </div>
