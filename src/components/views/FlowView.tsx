@@ -18,10 +18,8 @@ export function FlowView({
   onToggleDocument,
   onOpenDocument,
   onCloseDocument,
-  onDashboardContinue,
   onDashboardAction,
   onAction,
-  dashboardContinueDisabled,
 }: {
   view: ApiView;
   selectedIds: string[];
@@ -34,10 +32,8 @@ export function FlowView({
   onToggleDocument: (documentId: string, completed: boolean) => void;
   onOpenDocument: (document: DocumentItem) => void;
   onCloseDocument: () => void;
-  onDashboardContinue: () => void;
   onDashboardAction: (actionId: FlowActionId) => void;
   onAction: (actionId: FlowActionId) => void;
-  dashboardContinueDisabled: boolean;
 }) {
   if (view.type === "slot_question") {
     return (
@@ -69,7 +65,7 @@ export function FlowView({
   }
 
   if (view.type === "dashboard") {
-    return <DashboardView view={view} onContinue={onDashboardContinue} onAction={onDashboardAction} continueDisabled={dashboardContinueDisabled} />;
+    return <DashboardView view={view} onAction={onDashboardAction} />;
   }
   if (view.type === "submitted") return <SubmittedView view={view} />;
   return null;

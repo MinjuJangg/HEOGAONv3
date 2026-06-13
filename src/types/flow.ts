@@ -111,11 +111,10 @@ export interface DiagnosisGuidance {
   questionsToAsk: string[];
   procedureSteps: string[];
   documentOrderItems: string[];
-  departmentItems: string[];
 }
 
 export interface DecisionBlock {
-  type: "ready_for_documents" | "needs_user_info" | "needs_department_check" | "needs_user_decision";
+  type: "ready_for_documents" | "needs_user_info" | "needs_user_decision";
   title: string;
   items: string[];
 }

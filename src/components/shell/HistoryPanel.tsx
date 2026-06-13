@@ -3,14 +3,10 @@
 import { useEffect } from "react";
 import { Icon } from "@/components/common/Icon";
 import type { ApiEnvelope, FlowActionId } from "@/types/flow";
+import { FLOW_STAGES, stageForView } from "@/lib/viewState";
 
-const stageItems = [
-  { key: "intake", label: "질문" },
-  { key: "diagnosis", label: "진단" },
-  { key: "documents", label: "서류" },
-  { key: "dashboard", label: "현황" },
-  { key: "submitted", label: "제출" },
-];
+// Shared single source of truth so the stepper labels match the header progress bar.
+const stageItems = FLOW_STAGES;
 
 export function HistoryPanel({
   open,
@@ -28,7 +24,7 @@ export function HistoryPanel({
   const completedDocumentIds = envelope?.statePatch.completedDocumentIds || [];
   const questionLoop = envelope?.statePatch.questionLoop;
   const pendingDocuments = documents.filter((document) => !completedDocumentIds.includes(document.id));
-  const currentStage = envelope?.caseState.progressStage || "intake";
+  const currentStage = stageForView(envelope?.view?.type, envelope?.caseState.progressStage || "intake");
   const currentStageIndex = Math.max(0, stageItems.findIndex((item) => item.key === currentStage));
   const currentStageLabel = stageItems[currentStageIndex]?.label || "정보 수집";
   const currentViewTitle = envelope?.view.title || "진행 중인 케이스";
@@ -217,6 +213,7 @@ function TaskRow({
 
 function iconForStage(stage: string): "edit" | "fileCheck" | "list" | "message" | "search" | "check" {
   if (stage === "diagnosis") return "search";
+  if (stage === "review") return "check";
   if (stage === "documents") return "fileCheck";
   if (stage === "dashboard") return "list";
   if (stage === "submitted") return "check";

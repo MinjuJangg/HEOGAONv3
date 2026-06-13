@@ -112,7 +112,7 @@ const views: Record<ViewType, ApiView> = {
         items: ["사업자등록 신청서", "위생교육 수료증"],
       },
       {
-        type: "needs_department_check",
+        type: "needs_user_decision",
         title: "추가 확인이 필요해요",
         items: ["매장 시설 기준", "간판 설치 가능 여부"],
       },
@@ -212,7 +212,7 @@ const views: Record<ViewType, ApiView> = {
 const progressStageByView: Record<ViewType, string> = {
   slot_question: "intake",
   diagnosis: "diagnosis",
-  understanding_review: "diagnosis",
+  understanding_review: "review",
   documents: "documents",
   dashboard: "dashboard",
   submitted: "submitted",

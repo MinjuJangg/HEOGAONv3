@@ -77,13 +77,13 @@ export function DocumentsView({
                         <span className="document-timeline-link">자세히 <Icon name="arrowRight" size={14} /></span>
                       )}
                     </button>
-                    {!locked && !completed ? (
+                    {!locked ? (
                       <label className="document-prep-check">
                         <input
                           className="document-prep-check-input"
                           type="checkbox"
-                          checked={false}
-                          aria-label={`${document.title} 완료`}
+                          checked={completed}
+                          aria-label={`${document.title} 완료 표시`}
                           onChange={(event) => onToggleDocument(document.id, event.target.checked)}
                         />
                       </label>

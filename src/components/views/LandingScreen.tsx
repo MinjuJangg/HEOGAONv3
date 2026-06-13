@@ -13,6 +13,14 @@ const FOOD_SERVICE_PROMPTS = [
   "배달 판매도 함께 할 예정이에요",
 ];
 
+// First-use guidance: concrete example scenarios from HEOGAONV3_FLOW.md.
+// Tapping a chip prefills the composer so users see what they can ask.
+const EXAMPLE_CHIPS = [
+  { label: "카페 창업", text: "망원동에서 디저트 카페를 창업하고 싶어요" },
+  { label: "주류 판매 추가", text: "운영 중인 가게에 주류 판매를 추가하고 싶어요" },
+  { label: "간판 설치", text: "가게에 간판을 새로 설치하고 싶어요" },
+];
+
 const PLACEHOLDER_ROTATE_MS = 2800;
 const PLACEHOLDER_FADE_MS = 420;
 
@@ -31,11 +39,19 @@ export function LandingScreen({
 }) {
   const [promptIndex, setPromptIndex] = useState(0);
   const [placeholderFading, setPlaceholderFading] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const isEmpty = inputText.trim().length === 0;
   const rotatingPlaceholder = FOOD_SERVICE_PROMPTS[promptIndex];
 
   useEffect(() => {
-    if (!isEmpty || pending) {
+    // Pause rotation while typing/focused, and never rotate for users who
+    // requested reduced motion (the global CSS guard only stops the CSS fade,
+    // not this JS-driven text swap).
+    const prefersReducedMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+    if (!isEmpty || pending || isFocused || prefersReducedMotion) {
       setPlaceholderFading(false);
       return;
     }
@@ -53,7 +69,7 @@ export function LandingScreen({
       window.clearInterval(rotateTimer);
       if (fadeTimer) window.clearTimeout(fadeTimer);
     };
-  }, [isEmpty, pending]);
+  }, [isEmpty, pending, isFocused]);
 
   return (
     <section className="screen active" data-screen="landing">
@@ -78,6 +94,8 @@ export function LandingScreen({
             maxLength={200}
             value={inputText}
             onChange={(event) => onChange(event.target.value)}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
           />
           <button
             className="send-button"
@@ -92,6 +110,18 @@ export function LandingScreen({
             <ArrowUpIcon />
           </button>
         </form>
+        <div className="landing-examples" aria-label="예시 입력 채우기">
+          {EXAMPLE_CHIPS.map((chip) => (
+            <button
+              key={chip.label}
+              type="button"
+              className="landing-example-chip"
+              onClick={() => onChange(chip.text)}
+            >
+              {chip.label}
+            </button>
+          ))}
+        </div>
         {error ? <p className="collect-status error-text" role="alert">{error}</p> : null}
       </div>
     </section>

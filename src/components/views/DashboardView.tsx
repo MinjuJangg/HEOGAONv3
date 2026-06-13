@@ -3,14 +3,10 @@ import type { DashboardSection, DashboardSectionItem, DashboardView as Dashboard
 
 export function DashboardView({
   view,
-  onContinue,
   onAction,
-  continueDisabled,
 }: {
   view: DashboardViewModel;
-  onContinue: () => void;
   onAction: (actionId: FlowActionId) => void;
-  continueDisabled: boolean;
 }) {
   const stats = [
     { label: "서류", value: view.summary.documents },
@@ -32,15 +28,12 @@ export function DashboardView({
             </span>
           ))}
         </div>
-        <div className="dashboard-continue">
+        <div className="dashboard-continue dashboard-continue--static">
+          <span className="dashboard-continue-marker" aria-hidden="true"><Icon name="arrowRight" size={18} /></span>
           <span className="dashboard-continue-copy">
             <small>다음 할 일</small>
             <strong>{view.nextActions[0] || view.nextButtonLabel}</strong>
           </span>
-          <button className="dashboard-continue-button" type="button" disabled={continueDisabled} onClick={onContinue}>
-            <span>{view.nextButtonLabel}</span>
-            <Icon name="arrowRight" size={18} />
-          </button>
         </div>
       </section>
       <div className="summary-view dashboard-view">

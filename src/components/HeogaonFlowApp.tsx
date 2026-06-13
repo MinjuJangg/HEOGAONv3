@@ -11,7 +11,7 @@ import { FlowView } from "@/components/views/FlowView";
 import { LandingScreen } from "@/components/views/LandingScreen";
 import { getCase, sendTurn, startCase } from "@/lib/api";
 import { createDevEnvelope } from "@/lib/devMocks";
-import { primaryActionState, progressFor } from "@/lib/viewState";
+import { primaryActionState, progressFor, stageForView } from "@/lib/viewState";
 import type { ApiEnvelope, DocumentItem, FlowActionId, TurnInput, ViewType } from "@/types/flow";
 
 const MIN_ANALYSIS_LOADING_MS = 950;
@@ -40,7 +40,7 @@ export function HeogaonFlowApp({ initialDevView }: { initialDevView?: ViewType |
   const primary = view
     ? primaryActionState(view, selectedIds, freeText, pending, envelope?.statePatch.completedDocumentIds || [])
     : null;
-  const progress = progressFor(envelope?.caseState.progressStage || "intake");
+  const progress = progressFor(stageForView(view?.type, envelope?.caseState.progressStage));
   const ready = splashPhase === "done";
   const showDevPanel = process.env.NODE_ENV === "development";
 
@@ -220,10 +220,8 @@ export function HeogaonFlowApp({ initialDevView }: { initialDevView?: ViewType |
                 onToggleDocument={(documentId, completed) => handleTurn({ type: "document_toggle", documentId, completed })}
                 onOpenDocument={setActiveDocument}
                 onCloseDocument={() => setActiveDocument(null)}
-                onDashboardContinue={submitPrimary}
                 onDashboardAction={submitAction}
                 onAction={submitAction}
-                dashboardContinueDisabled={!primary || primary.disabled}
               />
             </div>
             {primary ? (

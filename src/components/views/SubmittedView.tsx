@@ -7,7 +7,6 @@ export function SubmittedView({ view }: { view: SimpleView }) {
   const statusCards = view.statusCards?.length ? view.statusCards : [
     { label: "서류", value: "완료" },
     { label: "진행률", value: `${completionRate}%` },
-    { label: "문의", value: "완료" },
   ];
   const submittedDocuments = view.submittedDocuments?.length ? view.submittedDocuments : [
     { id: "building-ledger", title: "건축물대장 확인", statusLabel: "완료", meta: "우선순위 1" },
@@ -30,7 +29,7 @@ export function SubmittedView({ view }: { view: SimpleView }) {
           <small>%</small>
         </div>
         <h1 className="submitted-ending-title" id="submitted-title">{view.title}</h1>
-        <p className="submitted-ending-copy">{view.subtitle || "준비한 서류와 문의 답변을 제출 완료 상태로 정리했어요."}</p>
+        <p className="submitted-ending-copy">{view.subtitle || "준비한 서류가 제출 완료 상태로 정리되었어요."}</p>
         <div className="submitted-ending-status-grid" aria-label="최종 진행 요약">
           {statusCards.map((item) => (
             <span className="submitted-ending-status-card" key={item.label}>
