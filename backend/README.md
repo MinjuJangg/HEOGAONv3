@@ -34,25 +34,26 @@ app/
   flow.py                        thin compatibility facade for existing routes
 ```
 
-## AI Setup
+## Env Setup
 
-Copy `.env.example` to `.env` or export the variables before running:
+Use the root `.env` file for both frontend and backend settings. The backend
+loads `../.env` when it starts from the `backend` directory.
+
+For AI/GMS, set:
 
 ```bash
-cp .env.example .env
 export LLM_API_KEY="..."
 export LLM_MODEL="gpt-4.1"
 export LLM_BASE_URL="https://gms.ssafy.io/gmsapi/api.openai.com/v1"
 ```
 
 `GMS_API_KEY` is also accepted as a fallback for `LLM_API_KEY`.
-`backend/.env` is loaded automatically when the server starts.
 
 If no API key is present, the service continues with deterministic rule fallback for demos.
 
 ## GraphRAG Setup
 
-Copy `.env.example` to `.env`, then enable GraphRAG:
+To enable remote GraphRAG, add these values to the root `.env`:
 
 ```bash
 ENABLE_GRAPH_RAG=true

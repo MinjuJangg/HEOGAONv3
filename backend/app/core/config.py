@@ -21,7 +21,10 @@ def _load_env_file(path: Path) -> None:
             os.environ[key] = value
 
 
-_load_env_file(Path(__file__).resolve().parents[2] / ".env")
+BACKEND_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = BACKEND_ROOT.parent
+
+_load_env_file(PROJECT_ROOT / ".env")
 
 DEFAULT_GMS_LLM_BASE_URL = "https://gms.ssafy.io/gmsapi/api.openai.com/v1"
 

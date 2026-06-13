@@ -1,12 +1,16 @@
 "use client";
 
 import { useEffect } from "react";
-import { Icon } from "@/components/common/Icon";
+import { Icon, type IconName } from "@/components/common/Icon";
 import type { ApiEnvelope, FlowActionId } from "@/types/flow";
-import { FLOW_STAGES, stageForView } from "@/lib/viewState";
 
-// Shared single source of truth so the stepper labels match the header progress bar.
-const stageItems = FLOW_STAGES;
+const stageItems = [
+  { key: "intake", label: "정보 수집" },
+  { key: "diagnosis", label: "확인 결과" },
+  { key: "documents", label: "서류" },
+  { key: "dashboard", label: "진행 현황" },
+  { key: "submitted", label: "제출 완료" },
+];
 
 export function HistoryPanel({
   open,
@@ -22,14 +26,11 @@ export function HistoryPanel({
   const answers = envelope?.statePatch.answers || [];
   const documents = envelope?.statePatch.documents || [];
   const completedDocumentIds = envelope?.statePatch.completedDocumentIds || [];
-  const questionLoop = envelope?.statePatch.questionLoop;
   const pendingDocuments = documents.filter((document) => !completedDocumentIds.includes(document.id));
-  const currentStage = stageForView(envelope?.view?.type, envelope?.caseState.progressStage || "intake");
+  const currentStage = envelope?.caseState.progressStage || "intake";
   const currentStageIndex = Math.max(0, stageItems.findIndex((item) => item.key === currentStage));
   const currentStageLabel = stageItems[currentStageIndex]?.label || "정보 수집";
-  const currentViewTitle = envelope?.view.title || "진행 중인 케이스";
-  const totalAsked = questionLoop?.totalAsked || answers.length;
-  const maxQuestions = questionLoop?.maxTotalQuestions || 10;
+  const currentViewTitle = envelope?.view.title || "진행 중인 내용";
   const nextFocus = focusText(envelope);
   const recentAnswers = answers.slice(-4).reverse();
 
@@ -60,7 +61,7 @@ export function HistoryPanel({
         <div className="history-head">
           <div>
             <p className="history-eyebrow">진행 상황</p>
-            <h2 className="history-title" id="history-title">히스토리</h2>
+            <h2 className="history-title" id="history-title">지금까지의 흐름</h2>
           </div>
           <button className="icon-button" type="button" aria-label="닫기" onClick={onClose}>
             <Icon name="close" />
@@ -71,7 +72,9 @@ export function HistoryPanel({
           <section className="history-dashboard">
             <div className="history-overview">
               <div className="history-current-row">
-                <span className="history-current-icon" aria-hidden="true"><Icon name={iconForStage(currentStage)} /></span>
+                <span className="history-current-icon" aria-hidden="true">
+                  <Icon name={iconForStage(currentStage)} />
+                </span>
                 <div className="history-current-main">
                   <p className="history-current-label">현재 단계</p>
                   <h3 className="history-current-title">{currentStageLabel} · {currentViewTitle}</h3>
@@ -90,17 +93,11 @@ export function HistoryPanel({
                   </li>
                 ))}
               </ol>
-
-              <div className="history-metrics" aria-label="진행 요약">
-                <Metric value={`${totalAsked}/${maxQuestions}`} label="질문" />
-                <Metric value={`${completedDocumentIds.length}/${documents.length || 0}`} label="서류" />
-              </div>
             </div>
 
             <section className="history-section">
               <div className="history-section-head">
                 <h3 className="history-section-title">지금 할 일</h3>
-                <span className="history-section-count">{nextActionCount(envelope, pendingDocuments.length)}개</span>
               </div>
               <ul className="history-task-list">
                 <TaskRow
@@ -115,7 +112,7 @@ export function HistoryPanel({
                   <TaskRow
                     icon="fileCheck"
                     title={document.title}
-                    meta={`예상 소요 ${document.perceivedDuration} · ${document.reason}`}
+                    meta={document.reason || document.perceivedDuration || "준비 여부를 확인해 주세요."}
                     status="서류"
                     key={document.id}
                     onClick={() => onAction("documents")}
@@ -127,7 +124,6 @@ export function HistoryPanel({
             <section className="history-section">
               <div className="history-section-head">
                 <h3 className="history-section-title">최근 답변</h3>
-                <span className="history-section-count">{answers.length}개</span>
               </div>
               <ul className="history-list">
                 {recentAnswers.length ? recentAnswers.map((answer) => (
@@ -140,7 +136,7 @@ export function HistoryPanel({
                   </li>
                 )) : (
                   <li className="history-empty">
-                    <span>아직 답변이 없어요.</span>
+                    <span>아직 남긴 답변이 없어요.</span>
                     <span className="history-item-chevron" aria-hidden="true"><Icon name="edit" /></span>
                   </li>
                 )}
@@ -159,15 +155,6 @@ export function HistoryPanel({
   );
 }
 
-function Metric({ value, label }: { value: string; label: string }) {
-  return (
-    <span className="history-metric">
-      <span className="history-metric-value">{value}</span>
-      <span className="history-metric-label">{label}</span>
-    </span>
-  );
-}
-
 function TaskRow({
   icon,
   title,
@@ -176,7 +163,7 @@ function TaskRow({
   accent,
   onClick,
 }: {
-  icon: "edit" | "fileCheck" | "list" | "message" | "search" | "check";
+  icon: IconName;
   title: string;
   meta: string;
   status: string;
@@ -211,9 +198,8 @@ function TaskRow({
   );
 }
 
-function iconForStage(stage: string): "edit" | "fileCheck" | "list" | "message" | "search" | "check" {
+function iconForStage(stage: string): IconName {
   if (stage === "diagnosis") return "search";
-  if (stage === "review") return "check";
   if (stage === "documents") return "fileCheck";
   if (stage === "dashboard") return "list";
   if (stage === "submitted") return "check";
@@ -223,10 +209,10 @@ function iconForStage(stage: string): "edit" | "fileCheck" | "list" | "message" 
 function focusText(envelope: ApiEnvelope | null) {
   const view = envelope?.view;
   if (!view) return "가게 준비 내용을 입력해 주세요.";
-  if (view.type === "slot_question") return "답하면 다음 질문으로 이어갈게요.";
-  if (view.type === "diagnosis") return "결과를 확인하고 서류로 넘어가세요.";
-  if (view.type === "understanding_review") return "이해한 내용이 맞는지 확인하세요.";
-  if (view.type === "documents") return "완료한 서류를 체크하세요.";
+  if (view.type === "slot_question") return "필요한 조건을 하나씩 확인하고 있어요.";
+  if (view.type === "diagnosis") return "건축물대장과 업종 기준을 바탕으로 진행 가능성을 확인해요.";
+  if (view.type === "understanding_review") return "이해한 내용이 맞는지 확인해 주세요.";
+  if (view.type === "documents") return "준비해야 할 서류를 확인해 주세요.";
   if (view.type === "dashboard") return "남은 일을 한눈에 볼 수 있어요.";
   return "제출 완료 상태예요.";
 }
@@ -238,11 +224,6 @@ function resumeLabel(envelope: ApiEnvelope | null) {
   if (view.type === "diagnosis") return "결과로 돌아가기";
   if (view.type === "understanding_review") return "확인 화면으로 돌아가기";
   if (view.type === "documents") return "서류로 돌아가기";
-  if (view.type === "dashboard") return "진행 상황으로 돌아가기";
+  if (view.type === "dashboard") return "진행 현황으로 돌아가기";
   return "제출 현황으로 돌아가기";
-}
-
-function nextActionCount(envelope: ApiEnvelope | null, pendingDocumentCount: number) {
-  const hasCurrentView = envelope?.view ? 1 : 0;
-  return hasCurrentView + Math.min(2, pendingDocumentCount);
 }

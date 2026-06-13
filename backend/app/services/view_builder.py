@@ -324,10 +324,10 @@ class ViewBuilder:
         judgement = summary.get("aiJudgement") or {}
         external = summary.get("externalChecks") or {}
         building = external.get("buildingLedger") or {}
+        building_for_display = self.display_building_source(case, building)
         past = external.get("pastBusinessLookup") or {}
         decision = summary.get("decisionEngine") or {}
         api_plan = summary.get("apiPlan") or {}
-        requirement_graph = summary.get("requirementGraph") or {}
         missing_info = summary.get("missingInfo") or {}
 
         provider = str(providers.get("judgement") or "rule")
@@ -340,8 +340,12 @@ class ViewBuilder:
         api_status_items = [
             f"건축물대장: {self.status_label(building.get('status'))}",
             f"용도/업종 판정: {self.status_label(decision.get('status'))}",
-            f"동일 장소 이력: {self.status_label(past.get('status'))}",
+            f"동일 장소 이력: {self.past_business_status_label(past)}",
         ]
+        if past.get("allCount", 0):
+            api_status_items.append(f"기존 업소 이력 {past.get('allCount')}건 조회")
+        if past.get("sameOrSimilarCount", 0):
+            api_status_items.append(f"동일/유사 업종 이력 {past.get('sameOrSimilarCount')}건 조회")
         if api_plan.get("skipReason"):
             api_status_items.append(str(api_plan["skipReason"]))
 
@@ -369,13 +373,13 @@ class ViewBuilder:
             "suitabilitySummary": suitability["summary"],
             "summary": summary_text,
             "finalResponseDraft": final_response,
-            "apiStatusItems": api_status_items,
-            "buildingItems": self.building_summary_items(building.get("summary") or {}),
+            "apiStatusItems": [],
+            "buildingItems": self.building_summary_items(building_for_display),
             "canSayNow": self.string_items(judgement.get("canSayNow"))[:5],
             "cannotConfirmYet": self.string_items(judgement.get("cannotConfirmYet"))[:5],
             "questionsToAsk": questions_to_ask,
-            "procedureSteps": self.string_items(requirement_graph.get("procedurePlan"))[:6],
-            "documentOrderItems": document_order_items,
+            "procedureSteps": [],
+            "documentOrderItems": [],
             "departmentItems": [],
         }
 
@@ -478,6 +482,22 @@ class ViewBuilder:
             "not_run": "미실행",
             "error": "오류",
         }.get(value, value)
+
+    @staticmethod
+    def past_business_status_label(past: dict[str, Any]) -> str:
+        status = str(past.get("status") or "not_run")
+        if status == "ok":
+            count = int(past.get("allCount") or past.get("count") or 0)
+            if count:
+                return f"기존 업소 {count}건 확인"
+            return "조회 완료, 기존 이력 없음"
+        return {
+            "skipped": "보류",
+            "missing_index": "LOCALDATA DB 경로 없음",
+            "empty_address": "주소 부족",
+            "not_run": "미실행",
+            "error": "오류",
+        }.get(status, status)
 
     @classmethod
     def condition_question_items(cls, case: dict[str, Any]) -> list[str]:
@@ -585,10 +605,29 @@ class ViewBuilder:
         return values
 
     @staticmethod
-    def building_summary_items(summary: dict[str, Any]) -> list[str]:
-        if not summary:
+    def display_building_source(case: dict[str, Any], building: dict[str, Any]) -> dict[str, Any]:
+        client_building = case.get("clientBuildingLedger") if isinstance(case.get("clientBuildingLedger"), dict) else {}
+        building_summary = building.get("summary") if isinstance(building.get("summary"), dict) else {}
+        client_summary = client_building.get("summary") if isinstance(client_building.get("summary"), dict) else {}
+        if not building_summary and client_summary:
+            return client_building
+        if building_summary and client_summary:
+            merged = dict(client_building)
+            merged.update(building)
+            merged["summary"] = {**client_summary, **building_summary}
+            return merged
+        return building
+
+    @staticmethod
+    def building_summary_items(building_or_summary: dict[str, Any]) -> list[str]:
+        if not building_or_summary:
             return []
 
+        summary = (
+            building_or_summary.get("summary")
+            if isinstance(building_or_summary.get("summary"), dict)
+            else building_or_summary
+        )
         items: list[str] = []
         for label, key in [
             ("주용도", "mainPurpsCdNm"),
@@ -598,7 +637,7 @@ class ViewBuilder:
         ]:
             value = summary.get(key)
             if value not in (None, "", []):
-                items.append(f"{label}: {value}")
+                items.append(f"{label}: {ViewBuilder.format_building_value(key, value)}")
 
         floor_uses = summary.get("floorUses") or summary.get("usesByFloor") or []
         floor_texts = []
@@ -617,10 +656,23 @@ class ViewBuilder:
         if floor_texts:
             items.append("층별 용도: " + " / ".join(floor_texts[:4]))
 
-        land_zones = summary.get("landUseZones") or summary.get("zones") or []
+        land_zones = summary.get("landUseZones") or summary.get("landZones") or summary.get("zones") or []
         if isinstance(land_zones, list) and land_zones:
             items.append("지역지구: " + ", ".join(str(zone) for zone in land_zones[:4]))
         return items
+
+    @staticmethod
+    def format_building_value(key: str, value: Any) -> str:
+        if key == "violated":
+            raw = str(value).strip().lower()
+            if raw in {"false", "n", "no", "0", "해당없음", "없음"}:
+                return "해당 없음"
+            if raw in {"true", "y", "yes", "1", "위반", "있음"}:
+                return "위반 있음"
+        if key == "areaM2":
+            text = str(value).strip()
+            return text if "㎡" in text else f"{text}㎡"
+        return str(value)
 
     @staticmethod
     def diagnosis_headline(case: dict[str, Any]) -> str:

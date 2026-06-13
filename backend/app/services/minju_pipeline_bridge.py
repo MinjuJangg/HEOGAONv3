@@ -114,6 +114,8 @@ class MinjuPipelineBridge:
             self._store_error(case, "pipeline_failed", f"{type(exc).__name__}: {exc}")
             return
 
+        self._inject_frontend_building(case, result)
+
         case["minjuIntake"] = {
             "status": "ok",
             "syncKey": sync_key,
@@ -227,6 +229,52 @@ class MinjuPipelineBridge:
             value = documents.get(source)
             if value and value != "unknown" and field not in case["slots"]:
                 set_slot(case, field, value, value, "AI 추출 서류 준비상태")
+
+    @staticmethod
+    def _inject_frontend_building(case: dict[str, Any], result: dict[str, Any]) -> None:
+        """프론트가 직접 조회한 건축물대장 raw 데이터를 externalChecks.buildingLedger 로 변환해 덮어쓴다.
+
+        주소 해석/조회는 프론트(카카오+data.go.kr)가 끝냈고, 백엔드는 raw records 를
+        요약(해석)만 한다. JUSO/data.go.kr 재호출 없음.
+        """
+        frontend = case.get("frontendBuilding")
+        if not isinstance(frontend, dict):
+            return
+
+        records = frontend.get("records") or {}
+        titles = records.get("title") or []
+        floors = records.get("floor") or []
+        units = records.get("unit") or []
+        zones = records.get("landZone") or []
+
+        try:
+            import precheck_cli  # minju.intake import 이후 top-level 로 로드됨
+            summary = precheck_cli.summarize_building_records(titles, floors, units, zones)
+        except Exception:  # pragma: no cover - 요약 실패 시 raw 카운트만 노출
+            summary = None
+
+        address = frontend.get("address") or {}
+        building_ledger = {
+            "status": "ok" if titles else "no_record",
+            "source": "frontend_direct",
+            "roadAddr": address.get("roadAddress") or "",
+            "jibunAddr": address.get("jibunAddress") or "",
+            "buildingParams": frontend.get("buildingParams") or {},
+            "summary": summary,
+            "recordCounts": {
+                "title": len(titles),
+                "floor": len(floors),
+                "unit": len(units),
+                "landZone": len(zones),
+            },
+        }
+        external = result.setdefault("externalChecks", {})
+        if not isinstance(external, dict):
+            external = {}
+            result["externalChecks"] = external
+        external["buildingLedger"] = building_ledger
+        external.setdefault("status", "ok")
+        external.setdefault("addressForApi", address.get("roadAddress") or address.get("jibunAddress") or "")
 
     @staticmethod
     def apply_external_checks_to_case(case: dict[str, Any], external: dict[str, Any]) -> None:

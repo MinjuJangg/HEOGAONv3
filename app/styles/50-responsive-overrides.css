@@ -11,6 +11,158 @@
         border: 0;
       }
 
+/* Final UX polish: stable landing input, quieter unknown buttons, no question counts. */
+.composer {
+  align-items: center;
+  min-height: 64px;
+  overflow: hidden;
+}
+
+.composer-field {
+  height: 24px;
+  min-height: 24px;
+  max-height: 24px;
+  resize: none;
+  overflow: hidden;
+  scrollbar-width: none;
+}
+
+.composer-field::-webkit-scrollbar,
+.composer-field::-webkit-resizer {
+  display: none;
+}
+
+.analysis-loading-status {
+  display: none !important;
+}
+
+.analysis-loading-title {
+  max-width: 340px;
+}
+
+.analysis-loading-sub {
+  max-width: 340px;
+}
+
+.analysis-loading-bar {
+  width: min(320px, 78vw);
+  height: 7px;
+  margin-top: 28px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e8eef7;
+}
+
+.analysis-loading-bar span {
+  display: block;
+  width: 46%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #7fa4ff 0%, var(--primary) 55%, #a8c0ff 100%);
+  animation: analysisProgress 1.35s ease-in-out infinite;
+}
+
+@keyframes analysisProgress {
+  0% {
+    transform: translateX(-110%);
+  }
+  55% {
+    transform: translateX(78%);
+  }
+  100% {
+    transform: translateX(230%);
+  }
+}
+
+.question-loop-chip,
+.question-progress-count {
+  display: none !important;
+}
+
+.question-progress {
+  gap: 5px;
+}
+
+.question-progress-caption {
+  justify-content: flex-start;
+  min-height: 16px;
+}
+
+.question-progress-track,
+.question-progress-stage-labels {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.question-progress-track {
+  height: 5px;
+}
+
+.question-progress-segment {
+  height: 5px;
+  background: #e5ebf4;
+  opacity: 1;
+}
+
+.question-progress-segment.is-complete {
+  background: #c6d6f7;
+}
+
+.question-progress-segment.is-current {
+  background: linear-gradient(90deg, var(--primary) 0%, #6d95f4 100%);
+  box-shadow: 0 0 0 3px rgba(86, 121, 221, 0.1);
+}
+
+.question-progress-stage-labels {
+  margin-top: 2px;
+}
+
+.question-progress-stage-label {
+  min-width: 0;
+  color: #a0a9b8;
+  font-size: 10px;
+  font-weight: 720;
+  line-height: 1.2;
+  text-align: center;
+  word-break: keep-all;
+}
+
+.question-progress-stage-label.is-complete {
+  color: #7e8ba0;
+}
+
+.question-progress-stage-label.is-current {
+  color: var(--primary);
+  font-weight: 850;
+}
+
+.option.option-unknown,
+.unknown-inline-button {
+  background: #f6f7f9;
+  border-color: #e1e6ee;
+  color: #7d8795;
+  box-shadow: none;
+}
+
+.option.option-unknown .option-icon,
+.unknown-inline-icon {
+  background: #eef1f5;
+  color: #8b95a4;
+}
+
+.option.option-unknown:hover,
+.unknown-inline-button:hover {
+  background: #f1f3f6;
+  border-color: #d8dee8;
+  color: #697386;
+}
+
+.option.option-unknown.selected {
+  background: #eef2f6;
+  border-color: #bcc7d6;
+}
+
       @media (max-width: 640px) {
         :root {
           --device-width: 100vw;
@@ -76,7 +228,7 @@
         }
 
         .analysis-loading-title {
-          font-size: 27px;
+          font-size: 24px;
         }
 
         .question-header {
@@ -1129,6 +1281,18 @@
       .summary-review-title {
         font-size: 16px;
         font-weight: 860;
+      }
+
+      .building-ledger-summary {
+        margin-top: 16px;
+        padding: 13px;
+        border-radius: 15px;
+      }
+
+      .building-ledger-summary-row {
+        grid-template-columns: 78px minmax(0, 1fr);
+        gap: 8px;
+        padding: 9px 10px;
       }
 
       .confirmed-summary-list,

@@ -16,11 +16,8 @@ export function SlotQuestionView({
   onFreeText: (value: string) => void;
   onUnknown: () => void;
 }) {
-  const plannedTotal = view.loop.plannedTotalQuestions || view.loop.maxTotalQuestions;
-
   return (
     <section className="question-card">
-      <span className="question-loop-chip">질문 {view.loop.totalAsked}/{plannedTotal}</span>
       <h1 className="question-title">{view.title}</h1>
       {view.subtitle ? <p className="question-sub">{view.subtitle}</p> : null}
       {view.validationMessage ? <p className="collect-status error-text" role="alert">{view.validationMessage}</p> : null}
@@ -80,22 +77,25 @@ function QuestionOptions({
 
   return (
     <div className="options" role={isMulti ? "group" : "radiogroup"} aria-label="답변 선택">
-      {view.options.map((option) => (
-        <button
-          className={`option${selectedIds.includes(option.id) ? " selected" : ""}`}
-          type="button"
-          role={isMulti ? "checkbox" : "radio"}
-          aria-checked={selectedIds.includes(option.id)}
-          key={option.id}
-          onClick={() => toggle(option)}
-        >
-          <span className="option-icon" aria-hidden="true"><Icon name={iconForOption(option.id)} /></span>
-          <span className="option-main">
-            <span className="option-title">{option.title}</span>
-          </span>
-          <span className="check-dot" aria-hidden="true"><Icon name="check" size={13} /></span>
-        </button>
-      ))}
+      {view.options.map((option) => {
+        const isUnknown = option.id === "unknown";
+        return (
+          <button
+            className={`option${selectedIds.includes(option.id) ? " selected" : ""}${isUnknown ? " option-unknown" : ""}`}
+            type="button"
+            role={isMulti ? "checkbox" : "radio"}
+            aria-checked={selectedIds.includes(option.id)}
+            key={option.id}
+            onClick={() => toggle(option)}
+          >
+            <span className="option-icon" aria-hidden="true"><Icon name={iconForOption(option.id)} /></span>
+            <span className="option-main">
+              <span className="option-title">{option.title}</span>
+            </span>
+            <span className="check-dot" aria-hidden="true"><Icon name="check" size={13} /></span>
+          </button>
+        );
+      })}
     </div>
   );
 }

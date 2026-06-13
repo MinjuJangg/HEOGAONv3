@@ -1,3 +1,4 @@
+import { Icon } from "@/components/common/Icon";
 import { BrandLogo } from "@/components/shell/BrandLogo";
 
 export function AnalysisLoadingScreen() {
@@ -6,13 +7,11 @@ export function AnalysisLoadingScreen() {
       <div className="analysis-loading-main">
         <BrandLogo />
         <div className="analysis-loading-mark" aria-hidden="true">
-          <span />
-          <span />
-          <span />
+          <Icon name="search" size={30} />
         </div>
-        <h1 className="analysis-loading-title">AI가 분석 중이에요</h1>
-        <p className="analysis-loading-sub">필요한 질문과 서류를 찾고 있어요.</p>
-        <div className="analysis-loading-track" aria-hidden="true">
+        <h1 className="analysis-loading-title">필요한 내용을 확인하고 있어요</h1>
+        <p className="analysis-loading-sub">입력하신 내용을 바탕으로 필요한 서류와 진행 가능 여부를 살펴보고 있어요.</p>
+        <div className="analysis-loading-bar" aria-hidden="true">
           <span />
         </div>
       </div>

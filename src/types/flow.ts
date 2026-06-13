@@ -112,10 +112,11 @@ export interface DiagnosisGuidance {
   questionsToAsk: string[];
   procedureSteps: string[];
   documentOrderItems: string[];
+  departmentItems?: string[];
 }
 
 export interface DecisionBlock {
-  type: "ready_for_documents" | "needs_user_info" | "needs_user_decision";
+  type: "ready_for_documents" | "needs_user_info" | "needs_department_check" | "needs_user_decision";
   title: string;
   items: string[];
 }
@@ -239,7 +240,18 @@ export interface QuestionLoop {
 
 export type TurnInput =
   | { type: "natural_language"; text: string }
-  | { type: "slot_answer"; fieldKey: string; optionIds: string[]; text?: string; value?: string; unknown?: boolean }
+  | {
+      type: "slot_answer";
+      fieldKey: string;
+      optionIds: string[];
+      text?: string;
+      value?: string;
+      unknown?: boolean;
+      // 주소 단계에서 프론트가 카카오로 확정한 주소 + 직접 호출한 건축물대장 raw 데이터.
+      // 백엔드는 이 raw 데이터를 "해석"만 한다(JUSO 우회).
+      address?: import("@/lib/address").ResolvedAddress;
+      building?: import("@/lib/address").BuildingLedgerRaw;
+    }
   | { type: "action"; actionId: FlowActionId }
   | { type: "document_toggle"; documentId: string; completed: boolean };
 
