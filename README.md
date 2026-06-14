@@ -7,6 +7,10 @@
 복잡한 인허가 절차를 자연어 한 문장으로 시작해, **필요한 서류·순서·소요시간·관할 부서**까지
 누락 없이 안내합니다. 핵심은 한국 법령·정부 문서에서 추출한 **지식 그래프 기반 AI**입니다.
 
+https://youtu.be/qiv1yjfYUZQ
+[허가온앤온_허가온.pdf](https://github.com/user-attachments/files/28921796/_.pdf)
+
+
 <br/>
 
 ![Next.js](https://img.shields.io/badge/Next.js-15.3-000000?logo=nextdotjs&logoColor=white)
