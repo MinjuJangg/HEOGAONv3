@@ -1,6 +1,6 @@
 <div align="center">
 
-# 허가온 (HEOGAON)
+# 허가온
 
 ### 소상공인을 위한 AI 인허가 사전진단 서비스
 
