@@ -1770,17 +1770,6 @@
         color: var(--light);
       }
 
-      .dash-row-arrow {
-        margin-left: auto;
-        flex: 0 0 auto;
-        display: inline-flex;
-        align-items: center;
-        gap: 3px;
-        color: var(--primary);
-        font-size: 12px;
-        font-weight: 800;
-      }
-
       .dash-update-note {
         margin: 2px 0 0;
         font-size: 12px;
