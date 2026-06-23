@@ -9,6 +9,12 @@
 
 <br/>
 
+🏆 **SSAFY × KAKAO TECH BOOTCAMP AI HACKATHON 본선 진출작** 🏆
+<br/>
+**전국 SSAFY 103개 팀 중 6개 팀 최종 선발 (선발률 5.8%)**
+
+<br/>
+
 [![시연 영상](https://img.shields.io/badge/시연%20영상-YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/qiv1yjfYUZQ)
 &nbsp;&nbsp;
 [![발표 자료](https://img.shields.io/badge/발표%20자료-PDF-EF4444?style=for-the-badge&logo=adobeacrobatreader&logoColor=white)](https://github.com/user-attachments/files/28921796/_.pdf)
@@ -33,6 +39,7 @@
 
 ## 📑 목차
 
+- [✨ 주요 성과](#-주요-성과)
 - [🤔 왜 만들었나](#-왜-만들었나)
 - [💡 무엇을 하나](#-무엇을-하나)
 - [✨ 핵심 기능](#-핵심-기능)
@@ -45,6 +52,15 @@
 - [🔌 API 개요](#-api-개요)
 - [🌱 확장 계획](#-확장-계획)
 - [👥 팀](#-팀)
+
+---
+
+## ✨ 주요 성과
+
+### 🚀 SSAFY × KAKAO TECH BOOTCAMP AI HACKATHON 본선 진출
+
+- 정부 선정 **'AI 민생 10대 프로젝트'**를 주제로 진행된 전국 규모 해커톤에서 기술성·혁신성을 인정받아 본선에 진출했습니다.
+- 참여 **103개 팀 중 6개 팀**이 선발되는 본선에 올라, 프로젝트의 완성도를 대외적으로 검증받았습니다.
 
 ---
 
@@ -119,7 +135,7 @@ flowchart LR
 ```
 
 | 단계 | 화면 | 역할 |
-|---|---|---|
+| --- | --- | --- |
 | 1️⃣ 정보 수집 | `LandingScreen` | 자연어로 창업 계획 입력 |
 | 2️⃣ 부족정보 질문 | `SlotQuestionView` / `AddressSearchView` | 단일·다중 선택·자유 입력, 카카오맵+건축물대장 주소 조회 |
 | 3️⃣ 사전 진단 | `DiagnosisView` | 가능 여부 판단 + 건축물대장 요약 + 근거 |
@@ -128,7 +144,7 @@ flowchart LR
 | 6️⃣ 진행 현황 | `DashboardView` | 진행률·다음 할 일·잠긴 서류 표시 |
 | 7️⃣ 제출 완료 | `SubmittedView` | 완료 서류·제출 안내 |
 
-> 📖 서비스 플로우의 정본은 [`HEOGAONV3_FLOW.md`](HEOGAONV3_FLOW.md) 입니다.
+> 📖 서비스 플로우의 정본은 [`HEOGAONV3_FLOW.md`](./HEOGAONV3_FLOW.md) 입니다.
 
 ---
 
@@ -158,12 +174,12 @@ LLM 단독 생성이 아니라, 그래프가 사실의 단일 출처(source of t
 🛟 **3단계 폴백** — 외부 서비스가 없어도 동작합니다.
 
 | 영역 | 1순위 | 2순위 | 3순위 (데모) |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 정보 추출 / 판단 | GMS LLM | 규칙 기반 | — |
 | 서류 / 질문 / 근거 | 원격 GraphRAG | 로컬 그래프 CSV | 카탈로그 상수 |
 
 🗺️ 그래프는 **기능 단위의 부서**(예: "위생 업무")로 저장하고, 질의 시점에
-[`department_mapping`](minju/department_mapping/)(서울 25개 자치구)으로 구체 부서명을 매핑합니다.
+`department_mapping`(서울 25개 자치구)으로 구체 부서명을 매핑합니다.
 덕분에 그래프를 복제하지 않고 지역을 확장할 수 있습니다.
 
 ---
@@ -171,16 +187,19 @@ LLM 단독 생성이 아니라, 그래프가 사실의 단일 출처(source of t
 ## 🛠️ 기술 스택
 
 **🖥️ 프론트엔드**
+
 - Next.js 15.3 (App Router), React 19.1, TypeScript 5.8
 - UI 프레임워크 없이 순수 React + CSS 디자인 시스템 (토큰·모션·접근성 내장)
 - 모바일 우선 레이아웃, `localStorage` 세션 복원, 카카오맵 SDK 연동
 
 **⚙️ 백엔드**
+
 - FastAPI 0.115+, Uvicorn, Pydantic 2
 - 인메모리 케이스 상태 머신 (`UNDERSTAND → NEEDS_INFO → DIAGNOSIS → CONFIRM_UNDERSTANDING → DOCUMENTS → DASHBOARD → SUBMITTED`)
 - LLM은 GMS(OpenAI 호환) 게이트웨이 사용, 키 없으면 규칙 기반 폴백
 
 **🧠 AI · 데이터 파이프라인 (`minju/`)**
+
 - 인테이크(슬롯 추출 · 시나리오 라우팅), 의사결정 엔진(인허가 가능성 판단)
 - 지식 그래프(CSV) + SQLite(서류 발급 가이드 · 부서 매핑)
 - 외부 API: JUSO(주소), 건축HUB(건축물대장), 서울 LOCALDATA(영업 이력)
@@ -270,10 +289,10 @@ npm run dev    # http://127.0.0.1:3103
 ## 🔑 환경 변수
 
 모든 키는 **루트 `.env` 한 파일**에서 프론트엔드와 백엔드가 함께 읽습니다.
-🔒 실제 키는 절대 커밋하지 마세요. 전체 템플릿은 [`.env.example`](.env.example) 참고.
+🔒 실제 키는 절대 커밋하지 마세요. 전체 템플릿은 [`.env.example`](./.env.example) 참고.
 
 | 변수 | 용도 |
-|---|---|
+| --- | --- |
 | `NEXT_PUBLIC_HEOGAON_API_BASE_URL` | 백엔드 API 주소 (예: `http://127.0.0.1:4100`) |
 | `NEXT_PUBLIC_KAKAO_JS_KEY` | 카카오 **JavaScript** 키 (REST 키 아님, 도메인 등록 필요) |
 | `LLM_API_KEY` / `LLM_MODEL` / `LLM_BASE_URL` | GMS(OpenAI 호환) LLM 설정 (`GMS_*` 별칭 폴백) |
@@ -290,7 +309,7 @@ npm run dev    # http://127.0.0.1:3103
 ## 🔌 API 개요
 
 | 메서드 | 엔드포인트 | 설명 |
-|---|---|---|
+| --- | --- | --- |
 | `GET` | `/health` | 헬스 체크 |
 | `POST` | `/api/cases` | 자연어 입력으로 케이스 생성 |
 | `GET` | `/api/cases/{case_id}` | 케이스 조회 (세션 복원) |
@@ -315,11 +334,9 @@ npm run dev    # http://127.0.0.1:3103
 
 **허가온앤온**
 
-- 👑 팀장 — 조성익
-- 🧑‍💻 팀원 — 고은찬, 김경민, 남주현, 박종화, 장민주
+| 역할 | 이름 |
+| --- | --- |
+| 👑 팀장 | 조성익 |
+| 🧑‍💻 팀원 | 고은찬, 김경민, 남주현, 박종화, 장민주 |
 
 ---
-
-<div align="center">
-<sub>🏛️ 허가온 · 🪪 소상공인을 위한 AI 인허가 사전진단 서비스</sub>
-</div>
