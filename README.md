@@ -18,6 +18,8 @@
 [![시연 영상](https://img.shields.io/badge/시연%20영상-YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/qiv1yjfYUZQ)
 &nbsp;&nbsp;
 [![발표 자료](https://img.shields.io/badge/발표%20자료-PDF-EF4444?style=for-the-badge&logo=adobeacrobatreader&logoColor=white)](https://github.com/user-attachments/files/28921796/_.pdf)
+&nbsp;&nbsp;
+[![AWS 배포](https://img.shields.io/badge/AWS%20%EB%B0%B0%ED%8F%AC-%EC%84%9C%EB%B9%84%EC%8A%A4-232F3E?style=for-the-badge&logo=amazonaws&logoColor=white)](http://h14k010.p.ssafy.io/)
 
 <br/>
 
