@@ -1,4 +1,4 @@
-# Heogaon Flow V2 Backend
+# HEOGAON Backend
 
 FastAPI backend for the planning-document flow:
 
@@ -64,7 +64,7 @@ GRAPH_RAG_TIMEOUT_SECONDS=8
 
 The backend calls `POST {GRAPH_RAG_BASE_URL}/retrieve` with `kind` set to `questions`, `documents`, `inquiries`, or `evidence`.
 
-If the remote GraphRAG service is disabled, unreachable, or returns an invalid shape, the backend first tries the checked-in local graph package at `minju/graph/output/final_graph` and falls back to `minju_new/graph/output/final_graph` for older checkouts. If neither local graph can produce a valid response, the affected area falls back to `app/data/catalog.py`. The state machine, retry limits, and next-screen routing stay in FastAPI.
+If the remote GraphRAG service is disabled, unreachable, or returns an invalid shape, the backend tries the checked-in local graph package at `heogaon/graph/output/final_graph`. If the local graph cannot produce a valid response, the affected area falls back to `app/data/catalog.py`. The state machine, retry limits, and next-screen routing stay in FastAPI.
 
 ## Run
 

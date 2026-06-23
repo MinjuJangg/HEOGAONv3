@@ -14,8 +14,8 @@ from pathlib import Path
 from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-DOCUMENT_DB = REPO_ROOT / "minju" / "document_issue_guide" / "document_issue_guide.sqlite"
-DEPARTMENT_DB = REPO_ROOT / "minju" / "department_mapping" / "seoul_department_mapping.sqlite"
+DOCUMENT_DB = REPO_ROOT / "heogaon" / "document_issue_guide" / "document_issue_guide.sqlite"
+DEPARTMENT_DB = REPO_ROOT / "heogaon" / "department_mapping" / "seoul_department_mapping.sqlite"
 
 
 # 편집 가능한 테이블만 명시적으로 허용한다. (SQL injection 방지: 식별자는 절대 사용자 입력에서 받지 않음)

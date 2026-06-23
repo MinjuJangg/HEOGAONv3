@@ -6,9 +6,9 @@
 
 ## 입력
 
-- `minju/graph/output/final_graph/graph_edges_high_precision.csv`
-- `minju/graph/output/final_graph/graph_nodes_high_precision.csv`
-- `minju/department_mapping/local_department_tasks.csv`
+- `heogaon/graph/output/final_graph/graph_edges_high_precision.csv`
+- `heogaon/graph/output/final_graph/graph_nodes_high_precision.csv`
+- `heogaon/department_mapping/local_department_tasks.csv`
 
 ## 산출물
 
@@ -42,21 +42,21 @@
 1. 사용자가 업종/상황을 입력하면 그래프에서 필요한 인허가와 절차를 찾습니다.
 2. `all_permit_submission_documents` 또는 `food_permit_submission_documents`에서 해당 인허가의 제출서류를 가져옵니다.
 3. 문서별 발급/준비처는 `all_document_issue_guide`에서 붙입니다.
-4. `submit_to_local_task_key`가 있으면 `minju/department_mapping/seoul_department_mapping.sqlite`와 조인해 서울 자치구별 실제 부서명을 붙입니다.
+4. `submit_to_local_task_key`가 있으면 `heogaon/department_mapping/seoul_department_mapping.sqlite`와 조인해 서울 자치구별 실제 부서명을 붙입니다.
 5. UI에서 너무 많은 문서가 한 번에 나오면 `document_issue_guide.csv`의 18개 핵심 요약판을 먼저 보여주고, 상세 버튼에서 전체판을 열면 됩니다.
 
 ## 재생성
 
 ```powershell
-python minju\document_issue_guide\build_document_issue_guide.py
+python heogaon\document_issue_guide\build_document_issue_guide.py
 ```
 
 ## 조회 예시
 
 ```powershell
-python minju\document_issue_guide\lookup_document_issue.py --document 위생교육 --district-code 11440
-python minju\document_issue_guide\lookup_document_issue.py --document 도로점용 --district-code 11680
-python minju\document_issue_guide\lookup_document_issue.py --document 임대차계약서
+python heogaon\document_issue_guide\lookup_document_issue.py --document 위생교육 --district-code 11440
+python heogaon\document_issue_guide\lookup_document_issue.py --document 도로점용 --district-code 11680
+python heogaon\document_issue_guide\lookup_document_issue.py --document 임대차계약서
 ```
 
 `lookup_document_issue.py`는 기본적으로 전체 문서 카탈로그인 `all_document_issue_guide`를 조회합니다. 핵심 18개 요약판만 보고 싶으면 `--core`를 붙입니다.

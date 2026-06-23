@@ -6,7 +6,7 @@ from app.models.case_factory import new_case
 from app.repositories.case_repository import InMemoryCaseRepository, case_repository
 from app.services.document_service import DocumentService, document_service
 from app.services.intake_agent import IntakeAgent, intake_agent
-from app.services.minju_pipeline_bridge import MinjuPipelineBridge, minju_pipeline_bridge
+from app.services.heogaon_pipeline_bridge import HeogaonPipelineBridge, heogaon_pipeline_bridge
 from app.services.question_planner import QuestionPlanner, question_planner
 from app.services.slot_utils import as_list, now_iso, slot_value
 from app.services.view_builder import ViewBuilder, view_builder
@@ -48,14 +48,14 @@ class CaseFlowService:
         intake: IntakeAgent = intake_agent,
         questions: QuestionPlanner = question_planner,
         documents: DocumentService = document_service,
-        minju: MinjuPipelineBridge = minju_pipeline_bridge,
+        heogaon: HeogaonPipelineBridge = heogaon_pipeline_bridge,
         views: ViewBuilder = view_builder,
     ) -> None:
         self.repository = repository
         self.intake = intake
         self.questions = questions
         self.documents = documents
-        self.minju = minju
+        self.heogaon = heogaon
         self.views = views
 
     @property
@@ -64,7 +64,7 @@ class CaseFlowService:
 
     def create_case(self, raw_text: str) -> dict[str, Any]:
         case = new_case(raw_text)
-        self.minju.bootstrap(case)
+        self.heogaon.bootstrap(case)
         self.intake.understand(case, use_llm=(case.get("minjuDraft") or {}).get("status") != "ok")
         case["questionLoop"]["pendingQuestions"] = self.questions.build_question_plan(case)
         self.repository.add(case)
@@ -76,7 +76,7 @@ class CaseFlowService:
     def _capture_frontend_building(case: dict[str, Any], input_payload: dict[str, Any]) -> None:
         """주소 단계에서 프론트가 직접 호출해 가져온 건축물대장 raw 데이터를 보관한다.
 
-        백엔드는 이 데이터를 해석만 하고(JUSO/data.go.kr 재호출 안 함), minju 브리지가
+        백엔드는 이 데이터를 해석만 하고(JUSO/data.go.kr 재호출 안 함), HEOGAON 브리지가
         externalChecks.buildingLedger 로 변환해 흐름에 반영한다.
         """
         building = input_payload.get("building")
@@ -215,7 +215,7 @@ class CaseFlowService:
     def sync_minju_outputs(self, case: dict[str, Any]) -> None:
         if case["machineState"] != "DIAGNOSIS":
             return
-        self.minju.sync(case)
+        self.heogaon.sync(case)
         if (case.get("minjuIntake") or {}).get("status") == "ok":
             case["documents"] = self.documents.build_documents(case)
             case["inquiryTasks"] = []

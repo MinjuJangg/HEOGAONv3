@@ -7,8 +7,8 @@ from typing import Any
 
 
 INTAKE_DIR = Path(__file__).resolve().parent
-MINJU_ROOT = INTAKE_DIR.parent
-DOCUMENT_DB_PATH = MINJU_ROOT / "document_issue_guide" / "document_issue_guide.sqlite"
+HEOGAON_ROOT = INTAKE_DIR.parent
+DOCUMENT_DB_PATH = HEOGAON_ROOT / "document_issue_guide" / "document_issue_guide.sqlite"
 
 
 DOC_PROCESSING_PROFILE: dict[str, str] = {

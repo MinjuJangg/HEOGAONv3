@@ -144,7 +144,7 @@ flowchart LR
 | 6️⃣ 진행 현황 | `DashboardView` | 진행률·다음 할 일·잠긴 서류 표시 |
 | 7️⃣ 제출 완료 | `SubmittedView` | 완료 서류·제출 안내 |
 
-> 📖 서비스 플로우의 정본은 [`HEOGAONV3_FLOW.md`](./HEOGAONV3_FLOW.md) 입니다.
+> 📖 서비스 플로우의 정본은 [`docs/FLOW.md`](docs/FLOW.md) 입니다.
 
 ---
 
@@ -165,7 +165,7 @@ LLM 단독 생성이 아니라, 그래프가 사실의 단일 출처(source of t
 사용자 입력 → 조건 추출 → 그래프 탐색 → 필요 서류 · 부서 · 일정 도출
 ```
 
-📦 체크인된 최종 그래프(`minju/graph/output/final_graph/`) 규모:
+📦 체크인된 최종 그래프(`heogaon/graph/output/final_graph/`) 규모:
 
 - 🔵 **노드 2,069개** (12종) — 서류 449, 법적근거 278, 인허가 절차 249, 확인항목 213, 조건모듈 174, 리스크 112, 근거 청크 461 …
 - 🔗 **엣지 3,429개** (12종) — `requires_document` 661, `needs_check` 215, `requires_prerequisite` 24, `precedes` 16, `handled_by` 12 …
@@ -179,7 +179,7 @@ LLM 단독 생성이 아니라, 그래프가 사실의 단일 출처(source of t
 | 서류 / 질문 / 근거 | 원격 GraphRAG | 로컬 그래프 CSV | 카탈로그 상수 |
 
 🗺️ 그래프는 **기능 단위의 부서**(예: "위생 업무")로 저장하고, 질의 시점에
-`department_mapping`(서울 25개 자치구)으로 구체 부서명을 매핑합니다.
+[`department_mapping`](heogaon/department_mapping/)(서울 25개 자치구)으로 구체 부서명을 매핑합니다.
 덕분에 그래프를 복제하지 않고 지역을 확장할 수 있습니다.
 
 ---
@@ -198,8 +198,7 @@ LLM 단독 생성이 아니라, 그래프가 사실의 단일 출처(source of t
 - 인메모리 케이스 상태 머신 (`UNDERSTAND → NEEDS_INFO → DIAGNOSIS → CONFIRM_UNDERSTANDING → DOCUMENTS → DASHBOARD → SUBMITTED`)
 - LLM은 GMS(OpenAI 호환) 게이트웨이 사용, 키 없으면 규칙 기반 폴백
 
-**🧠 AI · 데이터 파이프라인 (`minju/`)**
-
+**🧠 AI · 데이터 파이프라인 (`heogaon/`)**
 - 인테이크(슬롯 추출 · 시나리오 라우팅), 의사결정 엔진(인허가 가능성 판단)
 - 지식 그래프(CSV) + SQLite(서류 발급 가이드 · 부서 매핑)
 - 외부 API: JUSO(주소), 건축HUB(건축물대장), 서울 LOCALDATA(영업 이력)
@@ -209,7 +208,7 @@ LLM 단독 생성이 아니라, 그래프가 사실의 단일 출처(source of t
 ## 📁 프로젝트 구조
 
 ```
-HEOGAONv3/
+HEOGAON/
 ├── app/                  # Next.js App Router (page, layout, admin, styles)
 ├── src/
 │   ├── components/       # views / shell / common / dev
@@ -220,18 +219,18 @@ HEOGAONv3/
 │       ├── main.py       # FastAPI 진입점 · 라우트 · 주소 검색
 │       ├── core/         # 환경 설정
 │       ├── integrations/ # LLM 클라이언트 (GMS)
-│       ├── services/     # flow / question_planner / view_builder / document / minju 브리지 …
+│       ├── services/     # flow / question_planner / view_builder / document / HEOGAON 브리지 …
 │       ├── repositories/ # 인메모리 케이스 저장소
 │       └── data/         # 카탈로그(질문·서류 규칙) 폴백
-├── minju/                # 도메인 AI 파이프라인
+├── heogaon/                # 도메인 AI 파이프라인
 │   ├── intake/           # 슬롯 추출 · 시나리오 · 요구사항 그래프
 │   ├── decision_engine/  # 인허가 가능성 판단
 │   ├── graph/output/final_graph/   # 지식 그래프 CSV (노드/엣지)
 │   ├── document_issue_guide/        # 서류 발급 가이드 (SQLite)
 │   └── department_mapping/          # 서울 자치구 부서 매핑 (SQLite)
-├── HEOGAONV3_FLOW.md     # UX 플로우 정본
-├── README_RUNTIME.md     # 런타임 구성 메모
-├── RUN_HEOGAONV3.ps1     # 프론트+백엔드 동시 실행
+├── docs/FLOW.md     # UX 플로우 정본
+├── docs/RUNTIME.md     # 런타임 구성 메모
+├── scripts/start.ps1     # 프론트+백엔드 동시 실행
 └── .env.example          # 환경 변수 템플릿
 ```
 
@@ -247,16 +246,16 @@ HEOGAONv3/
 ### 1️⃣ 저장소 클론 & 환경 파일
 
 ```bash
-git clone https://github.com/MinjuJangg/HEOGAONv3.git
-cd HEOGAONv3
+git clone <repository-url> HEOGAON
+cd HEOGAON
 cp .env.example .env   # 값 채우기 (Windows: copy .env.example .env)
 ```
 
 ### 2️⃣ 한 번에 실행 (Windows / PowerShell)
 
 ```powershell
-.\RUN_HEOGAONV3.ps1
-# 종료: .\STOP_HEOGAONV3.ps1
+.\scripts\start.ps1
+# 종료: .\scripts\stop.ps1
 ```
 
 - 🌐 프론트엔드: http://127.0.0.1:3103

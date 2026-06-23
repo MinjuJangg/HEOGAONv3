@@ -22,7 +22,7 @@ class IntakeAgent:
             self._apply_ai_result(case, ai_result)
             case["ai"]["intakeSource"] = "llm"
         elif not use_llm:
-            case["ai"]["intakeSource"] = "minju+rules"
+            case["ai"]["intakeSource"] = "heogaon+rules"
 
         self._apply_rule_fallback(case, text)
         case["candidatePermits"] = self.infer_candidate_permits(case)

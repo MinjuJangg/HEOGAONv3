@@ -8,9 +8,9 @@ from pathlib import Path
 from typing import Any
 
 
-MINJU_ROOT = Path(__file__).resolve().parents[1]
-PROJECT_ROOT = MINJU_ROOT.parent
-DATA_PREPROCESS = MINJU_ROOT / "data_preprocess"
+HEOGAON_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = HEOGAON_ROOT.parent
+DATA_PREPROCESS = HEOGAON_ROOT / "data_preprocess"
 if str(DATA_PREPROCESS) not in sys.path:
     sys.path.insert(0, str(DATA_PREPROCESS))
 

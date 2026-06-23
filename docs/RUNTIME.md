@@ -1,15 +1,15 @@
-# HEOGAONV3 Runtime
+# HEOGAON Runtime
 
-This folder is a clean local runtime copy for the merged HEOGAONV3 app.
+This folder is a clean local runtime copy for the merged HEOGAON app.
 
 ## What Is Included
 
 - `app`, `src`, `public`: Next.js frontend
 - `backend`: FastAPI flow backend
-- `minju/intake`, `minju/decision_engine`: intake and judgement logic
-- `minju/document_issue_guide`: document metadata DB
-- `minju/department_mapping`: Seoul department/document routing DB
-- `minju/graph/output/final_graph`: local GraphRAG fallback graph
+- `heogaon/intake`, `heogaon/decision_engine`: intake and judgement logic
+- `heogaon/document_issue_guide`: document metadata DB
+- `heogaon/department_mapping`: Seoul department/document routing DB
+- `heogaon/graph/output/final_graph`: local GraphRAG fallback graph
 
 Large development outputs, old scenario reports, and generated caches are intentionally excluded.
 
@@ -50,7 +50,7 @@ Do not commit real env files.
 ## Run
 
 ```powershell
-.\RUN_HEOGAONV3.ps1
+.\scripts\start.ps1
 ```
 
 Backend: `http://127.0.0.1:4100`

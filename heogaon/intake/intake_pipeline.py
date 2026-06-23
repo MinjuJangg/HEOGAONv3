@@ -8,10 +8,10 @@ from pathlib import Path
 from typing import Any
 
 
-MINJU_ROOT = Path(__file__).resolve().parents[1]
+HEOGAON_ROOT = Path(__file__).resolve().parents[1]
 INTAKE_DIR = Path(__file__).resolve().parent
-DECISION_ENGINE_DIR = MINJU_ROOT / "decision_engine"
-DATA_PREPROCESS_DIR = MINJU_ROOT / "data_preprocess"
+DECISION_ENGINE_DIR = HEOGAON_ROOT / "decision_engine"
+DATA_PREPROCESS_DIR = HEOGAON_ROOT / "data_preprocess"
 if str(INTAKE_DIR) not in sys.path:
     sys.path.insert(0, str(INTAKE_DIR))
 if str(DECISION_ENGINE_DIR) not in sys.path:

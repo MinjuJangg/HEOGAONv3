@@ -56,14 +56,14 @@
 ## 재생성
 
 ```powershell
-python minju\department_mapping\build_department_mapping_db.py
+python heogaon\department_mapping\build_department_mapping_db.py
 ```
 
 Kakao Local API 키가 있으면 아래처럼 환경변수로 넣은 뒤 재생성하면 주소 기준 좌표가 API 결과로 갱신됩니다.
 
 ```powershell
 $env:KAKAO_REST_API_KEY="..."
-python minju\department_mapping\build_department_mapping_db.py
+python heogaon\department_mapping\build_department_mapping_db.py
 ```
 
 API 키가 없으면 스크립트에 포함된 구청 좌표 스냅샷을 사용합니다. 구청 주소 출처는 서울특별시 자치구 공식 안내 페이지입니다.
@@ -72,9 +72,9 @@ API 키가 없으면 스크립트에 포함된 구청 좌표 스냅샷을 사용
 ## 조회 예시
 
 ```powershell
-python minju\department_mapping\lookup_department.py --district-code 11440 --task food_business_report
-python minju\department_mapping\lookup_department.py --district-code 11710 --task outdoor_ad_report
-python minju\department_mapping\lookup_department.py --district-code 11680 --task road_occupation_permit
+python heogaon\department_mapping\lookup_department.py --district-code 11440 --task food_business_report
+python heogaon\department_mapping\lookup_department.py --district-code 11710 --task outdoor_ad_report
+python heogaon\department_mapping\lookup_department.py --district-code 11680 --task road_occupation_permit
 ```
 
 ## 서비스 연결 방식

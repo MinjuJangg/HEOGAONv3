@@ -1,4 +1,4 @@
-# Minju Final Graph Package
+# HEOGAON Final Graph Package
 
 이 폴더는 발표용 최종 그래프를 다시 만들기 위한 최소 패키지입니다.
 프론트, 라우터, 사례 DB, raw 원문 복사본은 넣지 않았고, 기존 그래프 생성 코드와 이번에 추가한 seed 보강 방식만 남겼습니다.
@@ -30,7 +30,7 @@
 발표 직전에는 아래 두 명령만 실행하면 됩니다.
 
 ```powershell
-cd "C:\Users\SSAFY\Desktop\New project 2\minju\graph"
+cd "heogaon\graph"
 python .\src\augment_graph_with_seed_claims.py
 python .\src\validate_final_graph_for_demo.py
 ```

@@ -17,7 +17,7 @@ import { primaryActionState, progressFor } from "@/lib/viewState";
 import type { ApiEnvelope, DocumentItem, FlowActionId, TurnInput, ViewType } from "@/types/flow";
 
 const MIN_ANALYSIS_LOADING_MS = 950;
-const CASE_STORAGE_KEY = "heogaon:v2:caseId";
+const CASE_STORAGE_KEY = "heogaon:caseId";
 
 export function HeogaonFlowApp({ initialDevView }: { initialDevView?: ViewType | "landing" }) {
   const [splashPhase, setSplashPhase] = useState<"visible" | "hiding" | "done">(initialDevView ? "done" : "visible");

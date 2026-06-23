@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "허가온 Flow V2",
+  title: "허가온",
   description: "요식업 인허가 준비 흐름 프로토타입",
 };
 

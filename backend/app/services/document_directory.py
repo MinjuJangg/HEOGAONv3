@@ -11,8 +11,8 @@ from app.services.slot_utils import slot_value
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-DOCUMENT_DB = REPO_ROOT / "minju" / "document_issue_guide" / "document_issue_guide.sqlite"
-DEPARTMENT_DB = REPO_ROOT / "minju" / "department_mapping" / "seoul_department_mapping.sqlite"
+DOCUMENT_DB = REPO_ROOT / "heogaon" / "document_issue_guide" / "document_issue_guide.sqlite"
+DEPARTMENT_DB = REPO_ROOT / "heogaon" / "department_mapping" / "seoul_department_mapping.sqlite"
 
 
 DOCUMENT_PROCESSING_PROFILE: dict[str, str] = {

@@ -2,18 +2,18 @@
 
 ## Build Inputs
 
-- base_nodes: C:\Users\SSAFY\Desktop\New project 2\minju\graph\input\base_graph\graph_nodes_high_precision.csv
-- base_edges: C:\Users\SSAFY\Desktop\New project 2\minju\graph\input\base_graph\graph_edges_high_precision.csv
-- evidence: C:\Users\SSAFY\Desktop\New project 2\minju\graph\input\evidence\evidence_chunks_augmented.jsonl
+- base_nodes: heogaon\graph\input\base_graph\graph_nodes_high_precision.csv
+- base_edges: heogaon\graph\input\base_graph\graph_edges_high_precision.csv
+- evidence: heogaon\graph\input\evidence\evidence_chunks_augmented.jsonl
 - attach_evidence: True
 - evidence_min_score: 6
 - require_evidence_for_seeds: True
 - seed_files:
-  - C:\Users\SSAFY\Desktop\New project 2\minju\graph\seeds\core_route_seed.yaml
-  - C:\Users\SSAFY\Desktop\New project 2\minju\graph\seeds\core_document_check_seed.yaml
-  - C:\Users\SSAFY\Desktop\New project 2\minju\graph\seeds\core_department_seed.yaml
-  - C:\Users\SSAFY\Desktop\New project 2\minju\graph\seeds\core_procedure_seed.yaml
-  - C:\Users\SSAFY\Desktop\New project 2\minju\graph\seeds\core_before_prerequisite_seed.yaml
+  - heogaon\graph\seeds\core_route_seed.yaml
+  - heogaon\graph\seeds\core_document_check_seed.yaml
+  - heogaon\graph\seeds\core_department_seed.yaml
+  - heogaon\graph\seeds\core_procedure_seed.yaml
+  - heogaon\graph\seeds\core_before_prerequisite_seed.yaml
 
 ## Build Method
 

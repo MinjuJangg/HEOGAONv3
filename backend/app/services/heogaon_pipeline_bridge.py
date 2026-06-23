@@ -17,14 +17,14 @@ def _load_build_intake_result():
     if str(repo_root) not in sys.path:
         sys.path.insert(0, str(repo_root))
     try:
-        from minju.intake.intake_pipeline import build_intake_result
+        from heogaon.intake.intake_pipeline import build_intake_result
     except Exception as exc:  # pragma: no cover - reported through case state
         return None, f"{type(exc).__name__}: {exc}"
     return build_intake_result, ""
 
 
-class MinjuPipelineBridge:
-    """Attach the richer minju intake/API/judgement result to the V2 case flow."""
+class HeogaonPipelineBridge:
+    """Attach the richer HEOGAON intake/API/judgement result to the case flow."""
 
     def bootstrap(self, case: dict[str, Any]) -> None:
         build_intake_result, import_error = _load_build_intake_result()
@@ -76,7 +76,7 @@ class MinjuPipelineBridge:
             "summary": self._compact_result(result),
         }
         self.apply_slots_to_case(case, result.get("slots") or {})
-        case.setdefault("ai", {})["minjuDraftSource"] = "minju.intake"
+        case.setdefault("ai", {})["minjuDraftSource"] = "heogaon.intake"
 
     def sync(self, case: dict[str, Any]) -> None:
         build_intake_result, import_error = _load_build_intake_result()
@@ -131,20 +131,26 @@ class MinjuPipelineBridge:
         }
         self.apply_slots_to_case(case, result.get("slots") or {})
         self.apply_external_checks_to_case(case, result.get("externalChecks") or {})
-        case.setdefault("ai", {})["minjuPipelineSource"] = "minju.intake"
+        case.setdefault("ai", {})["minjuPipelineSource"] = "heogaon.intake"
 
     @property
     def slot_provider(self) -> str:
+        if os.getenv("HEOGAON_SLOT_PROVIDER"):
+            return os.getenv("HEOGAON_SLOT_PROVIDER", "rule").strip().lower()
         if os.getenv("MINJU_SLOT_PROVIDER"):
             return os.getenv("MINJU_SLOT_PROVIDER", "rule").strip().lower()
         return "gms" if settings.llm_available else "rule"
 
     def judgement_provider_for_case(self, case: dict[str, Any]) -> str:
+        if os.getenv("HEOGAON_JUDGEMENT_PROVIDER"):
+            return os.getenv("HEOGAON_JUDGEMENT_PROVIDER", "rule").strip().lower()
         if os.getenv("MINJU_JUDGEMENT_PROVIDER"):
             return os.getenv("MINJU_JUDGEMENT_PROVIDER", "rule").strip().lower()
         return "gms" if settings.llm_available else "rule"
 
     def inquiry_provider_for_case(self, case: dict[str, Any]) -> str:
+        if os.getenv("HEOGAON_INQUIRY_PROVIDER"):
+            return os.getenv("HEOGAON_INQUIRY_PROVIDER", "rule").strip().lower()
         if os.getenv("MINJU_INQUIRY_PROVIDER"):
             return os.getenv("MINJU_INQUIRY_PROVIDER", "rule").strip().lower()
         return "rule"
@@ -229,7 +235,7 @@ class MinjuPipelineBridge:
         if facility.get("outdoorAreaText") and "outdoor_area" not in case["slots"]:
             set_slot(case, "outdoor_area", facility["outdoorAreaText"], facility["outdoorAreaText"], "AI 추출 외부공간 면적")
 
-        MinjuPipelineBridge.apply_condition_signal_overrides(case)
+        HeogaonPipelineBridge.apply_condition_signal_overrides(case)
 
         for source, field in [
             ("leaseContract", "lease_contract"),
@@ -283,7 +289,7 @@ class MinjuPipelineBridge:
         zones = records.get("landZone") or []
 
         try:
-            import precheck_cli  # minju.intake import 이후 top-level 로 로드됨
+            import precheck_cli  # heogaon.intake import 이후 top-level 로 로드됨
             summary = precheck_cli.summarize_building_records(titles, floors, units, zones)
         except Exception:  # pragma: no cover - 요약 실패 시 raw 카운트만 노출
             summary = None
@@ -457,9 +463,9 @@ class MinjuPipelineBridge:
             "summary": {},
         }
         warnings = case.setdefault("ai", {}).setdefault("warnings", [])
-        warning = f"minju pipeline {reason}: {message}"
+        warning = f"heogaon pipeline {reason}: {message}"
         if warning not in warnings:
             warnings.append(warning)
 
 
-minju_pipeline_bridge = MinjuPipelineBridge()
+heogaon_pipeline_bridge = HeogaonPipelineBridge()

@@ -1,6 +1,6 @@
 # All Raw Rechunk Rebuild Report
 
-현재 minju evidence 전체를 대상으로 gov24 민원 서류 섹션, 담당공무원 확인 서류, 서비스 개요 신청서, 지역 공식 보강 source를 atomic chunk/edge로 다시 반영했습니다.
+현재 HEOGAON evidence 전체를 대상으로 gov24 민원 서류 섹션, 담당공무원 확인 서류, 서비스 개요 신청서, 지역 공식 보강 source를 atomic chunk/edge로 다시 반영했습니다.
 
 ## Counts
 - final_nodes: 2158

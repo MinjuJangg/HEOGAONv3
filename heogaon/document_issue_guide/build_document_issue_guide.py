@@ -7,9 +7,9 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent
-MINJU_ROOT = ROOT.parent
-GRAPH_ROOT = MINJU_ROOT / "graph" / "output" / "final_graph"
-DEPARTMENT_ROOT = MINJU_ROOT / "department_mapping"
+HEOGAON_ROOT = ROOT.parent
+GRAPH_ROOT = HEOGAON_ROOT / "graph" / "output" / "final_graph"
+DEPARTMENT_ROOT = HEOGAON_ROOT / "department_mapping"
 
 
 FOOD_PERMIT_SERVICE_ROUTES = {

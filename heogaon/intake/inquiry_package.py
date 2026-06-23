@@ -13,9 +13,9 @@ from typing import Any
 from gms_client import gms_chat_json
 
 
-MINJU_ROOT = Path(__file__).resolve().parents[1]
-DEPARTMENT_DB = MINJU_ROOT / "department_mapping" / "seoul_department_mapping.sqlite"
-DOCUMENT_DB = MINJU_ROOT / "document_issue_guide" / "document_issue_guide.sqlite"
+HEOGAON_ROOT = Path(__file__).resolve().parents[1]
+DEPARTMENT_DB = HEOGAON_ROOT / "department_mapping" / "seoul_department_mapping.sqlite"
+DOCUMENT_DB = HEOGAON_ROOT / "document_issue_guide" / "document_issue_guide.sqlite"
 
 SCHEMA_VERSION = "heogaon.inquiry_package.v1"
 

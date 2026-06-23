@@ -258,13 +258,11 @@ INQUIRY_RULES: tuple[LocalInquiryRule, ...] = (
 
 
 class LocalGraphRagRetriever:
-    """Read the checked-in Minju graph package as a local GraphRAG source."""
+    """Read the checked-in HEOGAON graph package as a local GraphRAG source."""
 
     def __init__(self, root: Path | None = None) -> None:
         repo_root = root or Path(__file__).resolve().parents[3]
-        minju_graph_root = repo_root / "minju" / "graph"
-        legacy_graph_root = repo_root / "minju_new" / "graph"
-        self.graph_root = minju_graph_root if minju_graph_root.exists() else legacy_graph_root
+        self.graph_root = repo_root / "heogaon" / "graph"
         self.final_graph_root = self.graph_root / "output" / "final_graph"
         self.nodes_path = self.final_graph_root / "graph_nodes_high_precision.csv"
         self.edges_path = self.final_graph_root / "graph_edges_high_precision.csv"

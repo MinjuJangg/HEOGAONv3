@@ -14,25 +14,25 @@ $env:DATA_GO_KR_SERVICE_KEY="국토교통부_건축HUB_건축물대장정보 서
 일반음식점:
 
 ```powershell
-python minju\decision_engine\permit_judgement.py --address "서울특별시 마포구 포은로 63, 1층 101호" --business-type 일반음식점영업
+python heogaon\decision_engine\permit_judgement.py --address "서울특별시 마포구 포은로 63, 1층 101호" --business-type 일반음식점영업
 ```
 
 휴게음식점/카페:
 
 ```powershell
-python minju\decision_engine\permit_judgement.py --address "서울특별시 마포구 포은로 63, 1층 101호" --business-type 휴게음식점영업 --area-m2 36.75
+python heogaon\decision_engine\permit_judgement.py --address "서울특별시 마포구 포은로 63, 1층 101호" --business-type 휴게음식점영업 --area-m2 36.75
 ```
 
 주류 판매 계획이 있는 경우:
 
 ```powershell
-python minju\decision_engine\permit_judgement.py --address "서울특별시 마포구 포은로 63, 1층 101호" --business-type 휴게음식점영업 --liquor-sales
+python heogaon\decision_engine\permit_judgement.py --address "서울특별시 마포구 포은로 63, 1층 101호" --business-type 휴게음식점영업 --liquor-sales
 ```
 
 카페/음식점 전체 조합:
 
 ```powershell
-python minju\decision_engine\permit_judgement.py --address "서울특별시 마포구 포은로 63, 1층 101호" --area-m2 36.75 --all-combinations
+python heogaon\decision_engine\permit_judgement.py --address "서울특별시 마포구 포은로 63, 1층 101호" --area-m2 36.75 --all-combinations
 ```
 
 ## Output Shape

@@ -6,9 +6,9 @@
   "permit_document_requirement_rows": 661,
   "document_prerequisite_rows": 24,
   "submission_route_rows": 12,
-  "source_graph_edges": "C:\\Users\\SSAFY\\Desktop\\New project 2\\minju\\graph\\output\\final_graph\\graph_edges_high_precision.csv",
-  "source_graph_nodes": "C:\\Users\\SSAFY\\Desktop\\New project 2\\minju\\graph\\output\\final_graph\\graph_nodes_high_precision.csv",
-  "source_local_tasks": "C:\\Users\\SSAFY\\Desktop\\New project 2\\minju\\department_mapping\\local_department_tasks.csv",
+  "source_graph_edges": "C:\\Users\\SSAFY\\Desktop\\New project 2\\heogaon\\graph\\output\\final_graph\\graph_edges_high_precision.csv",
+  "source_graph_nodes": "C:\\Users\\SSAFY\\Desktop\\New project 2\\heogaon\\graph\\output\\final_graph\\graph_nodes_high_precision.csv",
+  "source_local_tasks": "C:\\Users\\SSAFY\\Desktop\\New project 2\\heogaon\\department_mapping\\local_department_tasks.csv",
   "outputs": [
     "document_issue_guide.csv",
     "all_document_issue_guide.csv",
